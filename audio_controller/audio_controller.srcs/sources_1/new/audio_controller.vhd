@@ -6,9 +6,8 @@ entity audio_controller is
     Port (
         clk : in std_logic;
         reset_n: in std_logic;
-        audio_out : out std_logic
-    
-    
+        audio_out : out std_logic;
+        trigger: in std_logic
     );
 end audio_controller;
 
@@ -23,6 +22,9 @@ architecture Behavioral of audio_controller is
     
     signal blaster_sound_data: std_logic_vector(7 downto 0);
     signal blaster_sound_addr: std_logic_vector(15 downto 0);
+    
+    constant sound_length: unsigned(15 downto 0) := to_unsigned(34792, 16);
+    signal playing: std_logic := '0';
 
     component blaster_sound_mem
     port (
@@ -60,7 +62,8 @@ begin
             douta => blaster_sound_data
         );
 
-    pwm_duty_cycle <= unsigned(blaster_sound_data);
+    pwm_duty_cycle <= unsigned(blaster_sound_data) when playing = '1' else
+                      "00000000";
 
 process(clk, reset_n)begin
     if reset_n = '0' then
@@ -74,14 +77,28 @@ process(clk, reset_n)begin
     end if;
 end process;
 
-process(clk, reset_n, blaster_sound_addr)begin
+process(clk, reset_n, blaster_sound_addr, trigger, cnt_audio)
+    variable next_addr: unsigned(15 downto 0);
+    variable next_playing: std_logic;
+begin
+    if rising_edge(trigger) then
+        next_addr := "0000000000000000";
+        next_playing := '1';
+    end if;
+
     if reset_n = '0' then
-        blaster_sound_addr <= "0000000000000000";
+        next_addr := "0000000000000000";
+        next_playing := '0';
     elsif rising_edge(clk) then
         if cnt_audio = frequency then
-            blaster_sound_addr <= std_logic_vector(unsigned(blaster_sound_addr) + 1);
+            next_addr := unsigned(blaster_sound_addr) + 1;
+            if next_addr >= sound_length then
+                next_addr := to_unsigned(0, 16);
+                next_playing := '0';
+            end if;
         end if;
     end if;
+    playing <= next_playing;
+    blaster_sound_addr <= std_logic_vector(next_addr);
 end process;
-
 end Behavioral;

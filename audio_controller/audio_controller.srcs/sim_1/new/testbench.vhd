@@ -12,14 +12,15 @@ ARCHITECTURE SecondCounterTBArch OF SecondCounterTB IS
      PORT (
         clk : in std_logic;
         reset_n: in std_logic;
-        audio_out : out std_logic
-    
+        audio_out : out std_logic;
+        trigger: in std_logic
      );
    END COMPONENT audio_controller;
 
    SIGNAL Clk_tb: STD_LOGIC:='1';
    SIGNAL reset_n_tb: STD_LOGIC:='1';
    SIGNAL audio_out_tb: STD_LOGIC;
+   SIGNAL trigger_tb: std_logic := '0';
 
 
 BEGIN
@@ -28,7 +29,8 @@ BEGIN
      PORT MAP(
         clk => Clk_tb,
         reset_n => reset_n_tb,
-        audio_out => audio_out_tb
+        audio_out => audio_out_tb,
+        trigger => trigger_tb
      );
 
 
@@ -38,4 +40,11 @@ BEGIN
       WAIT FOR 25 ns;
       Clk_tb <= NOT(Clk_tb);
    END PROCESS clk_proc;
+   
+   trigger_proc:
+   process
+   begin
+      wait for 500 us;
+      trigger_tb <= not(trigger_tb);
+   end process trigger_proc;
 END SecondCounterTBArch;
