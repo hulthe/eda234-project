@@ -20,10 +20,20 @@ architecture Behavioral of audio_controller is
     
     signal enable_sound: std_logic := '1';
     
-    signal blaster_sound_data: std_logic_vector(7 downto 0);
-    signal blaster_sound_addr: std_logic_vector(15 downto 0);
+    constant ADDR_SIZE: integer := 19;
+    signal sound_data: std_logic_vector(7 downto 0);
+    signal sound_addr: std_logic_vector(ADDR_SIZE-1 downto 0);
     
-    constant sound_length: unsigned(15 downto 0) := to_unsigned(34792, 16);
+    -- current sounds in memory:
+    -- size    sound
+    -- -------------
+    -- 34792   blaster.raw
+    -- 191160  flawless_victory.raw
+    -- 151418  game_over.raw
+    --
+    -- 377370  total
+    constant SOUND_START: unsigned(ADDR_SIZE-1 downto 0) := to_unsigned(34792, ADDR_SIZE);
+    constant SOUND_END: unsigned(ADDR_SIZE-1 downto 0) := to_unsigned(191160, ADDR_SIZE);
     signal playing: std_logic := '0';
     
     signal last_trigger: std_logic := '0';
@@ -32,7 +42,7 @@ architecture Behavioral of audio_controller is
     port (
         clka : in std_logic;
         ena : in std_logic;
-        addra : in std_logic_vector(15 DOWNTO 0);
+        addra : in std_logic_vector(ADDR_SIZE-1 DOWNTO 0);
         douta : out std_logic_vector(7 DOWNTO 0)
     );
     end component blaster_sound_mem;
@@ -60,11 +70,11 @@ begin
         port map(
             clka => clk,
             ena => enable_sound,
-            addra => blaster_sound_addr,
-            douta => blaster_sound_data
+            addra => sound_addr,
+            douta => sound_data
         );
 
-    pwm_duty_cycle <= unsigned(blaster_sound_data) when playing = '1' else
+    pwm_duty_cycle <= unsigned(sound_data) when playing = '1' else
                       "00000000";
 
 process(clk, reset_n)begin
@@ -79,31 +89,31 @@ process(clk, reset_n)begin
     end if;
 end process;
 
-process(clk, reset_n, blaster_sound_addr, trigger, cnt_audio)
-    variable next_addr: unsigned(15 downto 0);
+process(clk, reset_n, sound_addr, trigger, cnt_audio)
+    variable next_addr: unsigned(ADDR_SIZE-1 downto 0);
     variable next_playing: std_logic;
 begin
     if reset_n = '0' then
-        next_addr := "0000000000000000";
+        next_addr := to_unsigned(0, ADDR_SIZE);
         next_playing := '0';
     elsif rising_edge(clk) then
         -- handle trigger
         if trigger = '1' and last_trigger = '0' then
-            next_addr := "0000000000000000";
+            next_addr := SOUND_START;
             next_playing := '1';
         end if;
         last_trigger <= trigger;
         
         -- audio player
         if cnt_audio = frequency then
-            next_addr := unsigned(blaster_sound_addr) + 1;
-            if next_addr >= sound_length then
-                next_addr := to_unsigned(0, 16);
+            next_addr := unsigned(sound_addr) + 1;
+            if next_addr >= SOUND_END then
+                next_addr := to_unsigned(0, ADDR_SIZE);
                 next_playing := '0';
             end if;
         end if;
     end if;
     playing <= next_playing;
-    blaster_sound_addr <= std_logic_vector(next_addr);
+    sound_addr <= std_logic_vector(next_addr);
 end process;
 end Behavioral;
