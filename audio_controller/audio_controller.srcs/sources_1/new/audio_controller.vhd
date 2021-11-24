@@ -25,13 +25,15 @@ architecture Behavioral of audio_controller is
     
     constant sound_length: unsigned(15 downto 0) := to_unsigned(34792, 16);
     signal playing: std_logic := '0';
+    
+    signal last_trigger: std_logic := '0';
 
     component blaster_sound_mem
     port (
-        clka : IN STD_LOGIC;
-        ena : IN STD_LOGIC;
-        addra : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
-        douta : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+        clka : in std_logic;
+        ena : in std_logic;
+        addra : in std_logic_vector(15 DOWNTO 0);
+        douta : out std_logic_vector(7 DOWNTO 0)
     );
     end component blaster_sound_mem;
     
@@ -81,15 +83,18 @@ process(clk, reset_n, blaster_sound_addr, trigger, cnt_audio)
     variable next_addr: unsigned(15 downto 0);
     variable next_playing: std_logic;
 begin
-    if rising_edge(trigger) then
-        next_addr := "0000000000000000";
-        next_playing := '1';
-    end if;
-
     if reset_n = '0' then
         next_addr := "0000000000000000";
         next_playing := '0';
     elsif rising_edge(clk) then
+        -- handle trigger
+        if trigger = '1' and last_trigger = '0' then
+            next_addr := "0000000000000000";
+            next_playing := '1';
+        end if;
+        last_trigger <= trigger;
+        
+        -- audio player
         if cnt_audio = frequency then
             next_addr := unsigned(blaster_sound_addr) + 1;
             if next_addr >= sound_length then
