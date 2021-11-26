@@ -1,7 +1,6 @@
 -----------------------------------------------------
 -- Title: UART_TX.vhdl
--- Author: Rafael Romon/NN-1
--- DAT096 - spring 2021
+-- Author: Rafael Romon
 -----------------------------------------------------
 -- Description:
 -- UART Transmitter. 8 bits w/ 1 start and 1 end bit
