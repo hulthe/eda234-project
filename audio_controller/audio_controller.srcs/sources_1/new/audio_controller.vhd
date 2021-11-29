@@ -2,6 +2,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+library work;
+use work.types.sound;
+
 entity audio_controller is
     Port (
         clk : in std_logic;
@@ -9,6 +12,7 @@ entity audio_controller is
         audio_out : out std_logic;
         trigger: in std_logic
     );
+
 end audio_controller;
 
 
@@ -21,6 +25,10 @@ architecture Behavioral of audio_controller is
     signal enable_sound: std_logic := '1';
     
     constant ADDR_SIZE: integer := 19;
+    
+    -- TODO: move this to a port
+    signal sound_selector: sound := blaster;
+    
     signal sound_data: std_logic_vector(7 downto 0);
     signal sound_addr: std_logic_vector(ADDR_SIZE-1 downto 0);
     
@@ -32,8 +40,8 @@ architecture Behavioral of audio_controller is
     -- 151418  game_over.raw
     --
     -- 377370  total
-    constant SOUND_START: unsigned(ADDR_SIZE-1 downto 0) := to_unsigned(34792, ADDR_SIZE);
-    constant SOUND_END: unsigned(ADDR_SIZE-1 downto 0) := to_unsigned(191160, ADDR_SIZE);
+    signal sound_start: unsigned(ADDR_SIZE-1 downto 0);
+    signal sound_end: unsigned(ADDR_SIZE-1 downto 0);
     signal playing: std_logic := '0';
     
     signal last_trigger: std_logic := '0';
@@ -57,6 +65,17 @@ architecture Behavioral of audio_controller is
     end component pwm;
 
 begin
+
+    with sound_selector select
+        sound_start <=
+            to_unsigned(0, ADDR_SIZE) when blaster,
+            to_unsigned(34792, ADDR_SIZE) when victory,
+            to_unsigned(225952, ADDR_SIZE) when game_over;
+    with sound_selector select
+        sound_end <=
+            to_unsigned(34792, ADDR_SIZE) when blaster,
+            to_unsigned(225952, ADDR_SIZE) when victory,
+            to_unsigned(377370, ADDR_SIZE) when game_over;
 
     pwm_ctrl: pwm
         port map(
