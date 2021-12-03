@@ -3,12 +3,16 @@ USE IEEE.STD_LOGIC_1164.ALL;
 
 ENTITY top_level IS
 	GENERIC (
-		CLK_FREQ : INTEGER := 100000000-- clk freq in Hz
+		CLK_FREQ     : INTEGER := 100000000; -- clk freq in Hz
+		CARRIER_FREQ : INTEGER := 36000; -- laser carrier freq in Hz
+		BPS          : INTEGER := 2 -- laser bits per second
 	);
 	PORT (
 		CLK100MHZ : IN STD_LOGIC;
+		BTNC : IN STD_LOGIC;
 		BTND : IN STD_LOGIC;
 		UART_RXD_OUT : OUT STD_LOGIC;
+		LASER_TX: OUT STD_LOGIC;
 		SEG: OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 		AN: OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
 	);
@@ -51,6 +55,27 @@ ARCHITECTURE Behavioral OF top_level IS
 		seg : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 		an : OUT STD_LOGIC_VECTOR(7 DOWNTO 0));
     END COMPONENT seg_controller;
+    
+	SIGNAL modulator_start : STD_LOGIC;
+	SIGNAL modulator_data : STD_LOGIC_VECTOR(7 DOWNTO 0) := "10100100";
+	SIGNAL modulator_busy : STD_LOGIC;
+	SIGNAL modulator_done : STD_LOGIC;    
+    
+    COMPONENT modulator IS
+		GENERIC (
+			CLK_FREQ     : INTEGER := 100000000; -- clk freq in Hz
+			CARRIER_FREQ : INTEGER := 36000; -- carrier freq in Hz
+			BPS          : INTEGER := 100 -- bits per second
+		);
+		PORT (
+			clk     : IN  STD_LOGIC;
+			reset_p : IN  STD_LOGIC;
+			start   : IN  STD_LOGIC;
+			data    : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
+			tx      : OUT STD_LOGIC;
+			busy    : OUT STD_LOGIC;
+			done    : OUT STD_LOGIC);
+	END COMPONENT modulator;
 
 BEGIN
 
@@ -80,24 +105,54 @@ BEGIN
 		seg => SEG,
 		an => AN
 	);
-
+    
+    modulator_comp :
+	COMPONENT modulator
+	   GENERIC MAP(
+			CLK_FREQ     => CLK_FREQ, -- clk freq in Hz
+			CARRIER_FREQ => CARRIER_FREQ, -- carrier freq in Hz
+			BPS          => BPS -- bits per second
+		)
+		PORT MAP(
+			clk     => CLK100MHZ,
+			reset_p => '0',
+			start   => modulator_start,
+			data    => modulator_data,
+			tx      => LASER_TX,
+			busy    => modulator_busy,
+			done    => modulator_done
+	);
+    
 	debounce_process : PROCESS (CLK100MHZ)
-		VARIABLE start_var : STD_LOGIC := '0';
+		VARIABLE start_var1 : STD_LOGIC := '0';
+		VARIABLE start_var2 : STD_LOGIC := '0';
 	BEGIN
         
         uart_msg <= "01011010";
+        modulator_data <= "01011010";
         
         IF rising_edge(CLK100MHZ) THEN        
             
             IF BTND = '1' and uart_busy = '0' THEN
-                start_var := '1';
+                start_var1 := '1';
     
-            ELSIF BTND = '0' AND start_var = '1' THEN
-                start_var := '0';
+            ELSIF BTND = '0' AND start_var1 = '1' THEN
+                start_var1 := '0';
                 uart_start <= '1';
     
             ELSIF uart_busy = '1' AND uart_start = '1' THEN
                 uart_start <= '0';
+            END IF;
+            
+            IF BTNC = '1' and modulator_busy = '0' THEN
+                start_var2 := '1';
+    
+            ELSIF BTNC = '0' AND start_var2 = '1' THEN
+                start_var2 := '0';
+                modulator_start <= '1';
+    
+            ELSIF modulator_busy = '1' AND modulator_start = '1' THEN
+                modulator_start <= '0';
             END IF;
 		
 		END IF;
