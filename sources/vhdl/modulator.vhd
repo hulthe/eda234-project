@@ -12,7 +12,7 @@ ENTITY modulator IS
 	GENERIC
 	(
 		CLK_FREQ     : INTEGER := 100000000; -- clk freq in Hz
-		CARRIER_FREQ : INTEGER := 36000;     -- carrier freq in Hz
+		CARRIER_FREQ : INTEGER := 38000;     -- carrier freq in Hz
 		BPS          : INTEGER := 100        -- bits per second
 	);
 	PORT
@@ -41,7 +41,7 @@ BEGIN
 		VARIABLE clk_cycles : INTEGER := 0;
 	BEGIN
 		IF rising_edge(clk) THEN
-			IF (clk_cycles + 1) = (CLK_FREQ/CARRIER_FREQ) THEN
+			IF (clk_cycles + 1) = (CLK_FREQ/CARRIER_FREQ/2) THEN
 				tx_signal <= NOT(tx_signal);
 				clk_cycles := 0;
 			ELSE
