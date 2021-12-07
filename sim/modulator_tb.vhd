@@ -51,7 +51,7 @@ architecture Behavioral of modulator_tb is
     COMPONENT modulator IS
 		GENERIC (
 			CLK_FREQ     : INTEGER := 100000000; -- clk freq in Hz
-			CARRIER_FREQ : INTEGER := 36000; -- carrier freq in Hz
+			CARRIER_FREQ : INTEGER := 38000; -- carrier freq in Hz
 			BPS          : INTEGER := 100 -- bits per second
 		);
 		PORT (

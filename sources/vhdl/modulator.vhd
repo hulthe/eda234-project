@@ -70,7 +70,7 @@ BEGIN
 		VARIABLE start_flag : STD_LOGIC := '0';
 	BEGIN
 		IF reset_p = '1' THEN
-			data_index := 6;
+			data_index := 7;
 			start_flag := '0';
 			tx   <= '0';
 			busy <= '0';
