@@ -6,10 +6,10 @@ entity demodulator_tb is
 end demodulator_tb;
 
 architecture Behavioral of demodulator_tb is
-    constant DATA_LEN: integer := 4;
+    constant DATA_LEN: integer := 8;
 
     signal clk_tb: std_logic := '0';
-    signal reset_p_tb : std_logic := '0';
+    signal reset_p_tb : std_logic := '1';
 
     signal rx_tb: std_logic := '0';
     
@@ -51,6 +51,15 @@ demodulator_comp :
 	
     clk_tb <= NOT clk_tb AFTER 10 ns;
     
+    reset_proc:
+    process begin
+        reset_p_tb <= '0';
+        wait for 299 us;
+        reset_p_tb <= '1';
+        wait for 1 us;
+        reset_p_tb <= '0';
+    end process;
+
     reset_p_tb <= '1',
                   '0' AFTER 1 ns;
     
@@ -84,4 +93,28 @@ demodulator_comp :
              
              '0'   AFTER 200 us, -- 1 (stop bit)
              '1'   AFTER 210 us;
+             
+    test_proc:
+    process begin
+        report "test_proc start";
+        
+        wait for 10 us;
+        assert (data_ready_tb = '0')
+        report "assert data not ready @10us"
+        severity error;
+        
+        wait for 200 us;
+        assert (data_ready_tb = '0')
+        report "assert data not ready @210us"
+        severity error;
+
+        wait for 10 us;
+        assert (data_ready_tb = '1')
+        report "assert data ready @220us"
+        severity error;
+        
+        assert (data_tb = "10100100")
+        report "assert data correct @220us"
+        severity error;
+    end process;
 end Behavioral;
