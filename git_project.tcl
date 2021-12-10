@@ -32,7 +32,9 @@
 #    "Z:/EDA234/eda234-project/sources/vhdl/modulator.vhd"
 #    "Z:/EDA234/eda234-project/sources/vhdl/seg_controller.vhd"
 #    "Z:/EDA234/eda234-project/sources/vhdl/top_level.vhd"
+#    "Z:/EDA234/eda234-project/sources/vhdl/demodulator.vhd"
 #    "Z:/EDA234/eda234-project/sources/constrs/Nexys-A7-100T-Master.xdc"
+#    "Z:/EDA234/eda234-project/sim/demodulator_tb.vhd"
 #    "Z:/EDA234/eda234-project/sim/modulator_tb.vhd"
 #    "Z:/EDA234/eda234-project/sim/seg_controller_tb.vhd"
 #
@@ -47,7 +49,9 @@ proc checkRequiredFiles { origin_dir} {
    "Z:/EDA234/eda234-project/sources/vhdl/modulator.vhd" \
    "Z:/EDA234/eda234-project/sources/vhdl/seg_controller.vhd" \
    "Z:/EDA234/eda234-project/sources/vhdl/top_level.vhd" \
+   "Z:/EDA234/eda234-project/sources/vhdl/demodulator.vhd" \
    "Z:/EDA234/eda234-project/sources/constrs/Nexys-A7-100T-Master.xdc" \
+   "Z:/EDA234/eda234-project/sim/demodulator_tb.vhd" \
    "Z:/EDA234/eda234-project/sim/modulator_tb.vhd" \
    "Z:/EDA234/eda234-project/sim/seg_controller_tb.vhd" \
   ]
@@ -156,7 +160,8 @@ set_property -name "sim.central_dir" -value "$proj_dir/${_xil_proj_name_}.ip_use
 set_property -name "sim.ip.auto_export_scripts" -value "1" -objects $obj
 set_property -name "simulator_language" -value "Mixed" -objects $obj
 set_property -name "target_language" -value "VHDL" -objects $obj
-set_property -name "webtalk.xsim_launch_sim" -value "16" -objects $obj
+set_property -name "webtalk.xsim_launch_sim" -value "35" -objects $obj
+
 
 # Create 'sources_1' fileset (if not found)
 if {[string equal [get_filesets -quiet sources_1] ""]} {
@@ -171,6 +176,7 @@ set files [list \
  [file normalize "${origin_dir}/sources/vhdl/modulator.vhd"] \
  [file normalize "${origin_dir}/sources/vhdl/seg_controller.vhd"] \
  [file normalize "${origin_dir}/sources/vhdl/top_level.vhd"] \
+ [file normalize "${origin_dir}/sources/vhdl/demodulator.vhd"] \
 ]
 add_files -norecurse -fileset $obj $files
 
@@ -196,6 +202,11 @@ set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
 
 set file "$origin_dir/sources/vhdl/top_level.vhd"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "VHDL" -objects $file_obj
+
+set file "$origin_dir/sources/vhdl/demodulator.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj
@@ -239,12 +250,18 @@ if {[string equal [get_filesets -quiet sim_1] ""]} {
 # Set 'sim_1' fileset object
 set obj [get_filesets sim_1]
 set files [list \
+ [file normalize "${origin_dir}/sim/demodulator_tb.vhd"] \
  [file normalize "${origin_dir}/sim/modulator_tb.vhd"] \
  [file normalize "${origin_dir}/sim/seg_controller_tb.vhd"] \
 ]
 add_files -norecurse -fileset $obj $files
 
 # Set 'sim_1' fileset file properties for remote files
+set file "$origin_dir/sim/demodulator_tb.vhd"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
+set_property -name "file_type" -value "VHDL" -objects $file_obj
+
 set file "$origin_dir/sim/modulator_tb.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sim_1] [list "*$file"]]
@@ -262,7 +279,7 @@ set_property -name "file_type" -value "VHDL" -objects $file_obj
 # Set 'sim_1' fileset properties
 set obj [get_filesets sim_1]
 set_property -name "hbs.configure_design_for_hier_access" -value "1" -objects $obj
-set_property -name "top" -value "modulator_tb" -objects $obj
+set_property -name "top" -value "demodulator_tb" -objects $obj
 set_property -name "top_auto_set" -value "0" -objects $obj
 set_property -name "top_lib" -value "xil_defaultlib" -objects $obj
 
@@ -294,6 +311,7 @@ if { $obj != "" } {
 }
 set obj [get_runs synth_1]
 set_property -name "part" -value "xc7a100tcsg324-1" -objects $obj
+set_property -name "auto_incremental_checkpoint.directory" -value "Z:/eda234-project/eda234-project/eda234-project.srcs/utils_1/imports/synth_1" -objects $obj
 set_property -name "strategy" -value "Vivado Synthesis Defaults" -objects $obj
 
 # set the current synth run
@@ -508,6 +526,7 @@ set_property -name "options.warn_on_violation" -value "1" -objects $obj
 }
 set obj [get_runs impl_1]
 set_property -name "part" -value "xc7a100tcsg324-1" -objects $obj
+set_property -name "auto_incremental_checkpoint.directory" -value "Z:/eda234-project/eda234-project/eda234-project.srcs/utils_1/imports/impl_1" -objects $obj
 set_property -name "strategy" -value "Vivado Implementation Defaults" -objects $obj
 set_property -name "steps.write_bitstream.args.readback_file" -value "0" -objects $obj
 set_property -name "steps.write_bitstream.args.verbose" -value "0" -objects $obj
