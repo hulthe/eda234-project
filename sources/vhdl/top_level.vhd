@@ -9,10 +9,13 @@ ENTITY top_level IS
 	);
 	PORT (
 		CLK100MHZ : IN STD_LOGIC;
-		BTNC : IN STD_LOGIC;
-		BTND : IN STD_LOGIC;
+		GUN_TRIGGER : IN STD_LOGIC;
+		CPU_RESETN : IN STD_LOGIC;
+		SEND_BUTTON : IN STD_LOGIC;
 		UART_RXD_OUT : OUT STD_LOGIC;
 		LASER_TX: OUT STD_LOGIC;
+		LED16:  OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
+		LED17:  OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
 		SEG: OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 		AN: OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
 	);
@@ -20,6 +23,21 @@ END top_level;
 
 ARCHITECTURE Behavioral OF top_level IS
 
+    SIGNAL reset_signal : STD_LOGIC;
+	SIGNAL send_signal : STD_LOGIC;
+	SIGNAL trigger_signal : STD_LOGIC;	   
+    
+    COMPONENT debounce IS
+    GENERIC(
+        clk_freq    : INTEGER := 100000000;  
+        stable_time : INTEGER := 10);        
+    PORT(
+        clk     : IN  STD_LOGIC;  
+        reset_n : IN  STD_LOGIC;  
+        button  : IN  STD_LOGIC;  
+        output  : OUT STD_LOGIC); 
+    END COMPONENT;
+    
 	SIGNAL uart_start : STD_LOGIC := '0';
 	SIGNAL uart_msg : STD_LOGIC_VECTOR(7 DOWNTO 0) := (OTHERS => '0');
 	SIGNAL uart_busy : STD_LOGIC;
@@ -58,6 +76,7 @@ ARCHITECTURE Behavioral OF top_level IS
     
 	SIGNAL modulator_start : STD_LOGIC;
 	SIGNAL modulator_data : STD_LOGIC_VECTOR(7 DOWNTO 0) := "10100100";
+	SIGNAL modulator_out : STD_LOGIC;
 	SIGNAL modulator_busy : STD_LOGIC;
 	SIGNAL modulator_done : STD_LOGIC;    
     
@@ -65,11 +84,11 @@ ARCHITECTURE Behavioral OF top_level IS
 		GENERIC (
 			CLK_FREQ     : INTEGER := 100000000; -- clk freq in Hz
 			CARRIER_FREQ : INTEGER := 36000; -- carrier freq in Hz
-			BPS          : INTEGER := 100 -- bits per second
+			BPS          : INTEGER := 5 -- bits per second
 		);
 		PORT (
 			clk     : IN  STD_LOGIC;
-			reset_p : IN  STD_LOGIC;
+			reset_n : IN  STD_LOGIC;
 			start   : IN  STD_LOGIC;
 			data    : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
 			tx      : OUT STD_LOGIC;
@@ -78,7 +97,34 @@ ARCHITECTURE Behavioral OF top_level IS
 	END COMPONENT modulator;
 
 BEGIN
-
+    
+    reset_button_comp : debounce
+	PORT MAP
+	(
+		clk => CLK100MHZ,
+		reset_n => '1',
+		button => CPU_RESETN,
+		output => reset_signal
+	);
+    
+    send_button_comp : debounce
+	PORT MAP
+	(
+		clk => CLK100MHZ,
+		reset_n => reset_signal,
+		button => SEND_BUTTON,
+		output => send_signal
+	);
+	
+	trigger_button_comp : debounce
+	PORT MAP
+	(
+		clk => CLK100MHZ,
+		reset_n => reset_signal,
+		button => GUN_TRIGGER,
+		output => trigger_signal
+	);
+    
 	UART_TX_comp : UART_TX
 	PORT MAP
 	(
@@ -90,6 +136,10 @@ BEGIN
 		TX_Done => uart_done
 	);
 	
+	--------------------------------------------  
+	-- This is just to test the 7seg controller
+	-- the values of the segments are arbitrary
+	--------------------------------------------
 	seg_controller_comp : seg_controller
 	PORT MAP
 	(		
@@ -115,10 +165,10 @@ BEGIN
 		)
 		PORT MAP(
 			clk     => CLK100MHZ,
-			reset_p => '0',
+			reset_n => reset_signal,
 			start   => modulator_start,
 			data    => modulator_data,
-			tx      => LASER_TX,
+			tx      => modulator_out,
 			busy    => modulator_busy,
 			done    => modulator_done
 	);
@@ -131,12 +181,18 @@ BEGIN
         uart_msg <= "01011010";
         modulator_data <= "01011010";
         
-        IF rising_edge(CLK100MHZ) THEN        
+        
+        IF rising_edge(CLK100MHZ) THEN                    
             
-            IF BTND = '1' and uart_busy = '0' THEN
+            LED16 <= "00" & modulator_out;
+            
+		    LASER_TX <= modulator_out;
+            
+            
+            IF send_signal = '1' and uart_busy = '0' THEN
                 start_var1 := '1';
     
-            ELSIF BTND = '0' AND start_var1 = '1' THEN
+            ELSIF send_signal = '0' AND start_var1 = '1' THEN
                 start_var1 := '0';
                 uart_start <= '1';
     
@@ -144,19 +200,32 @@ BEGIN
                 uart_start <= '0';
             END IF;
             
-            IF BTNC = '1' and modulator_busy = '0' THEN
+            IF trigger_signal = '1' and modulator_busy = '0' THEN
                 start_var2 := '1';
     
-            ELSIF BTNC = '0' AND start_var2 = '1' THEN
+            ELSIF trigger_signal = '0' AND start_var2 = '1' THEN
                 start_var2 := '0';
                 modulator_start <= '1';
     
             ELSIF modulator_busy = '1' AND modulator_start = '1' THEN
                 modulator_start <= '0';
-            END IF;
+            END IF;            
 		
 		END IF;
 
 	END PROCESS debounce_process;
+	
+	led_status_process: PROCESS(uart_busy, modulator_busy)
+	BEGIN
+            
+            IF reset_signal = '0' THEN
+                LED17 <= "100"; -- red for reset
+            ELSIF modulator_busy = '1' or uart_busy = '1' THEN
+                LED17 <= "110"; -- yellow for busy
+            ELSE
+                LED17 <= "001"; -- blue for idle
+            END IF;
+            
+     END PROCESS led_status_process;
 
 END Behavioral;

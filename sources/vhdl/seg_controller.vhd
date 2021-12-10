@@ -1,22 +1,4 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 11/22/2021 03:00:54 PM
--- Design Name: 
--- Module Name: seg_controller - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
+
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -67,33 +49,33 @@ BEGIN
 			END IF;
 		END IF;
 	END PROCESS pulse_process;
-
+    
 	display_process :
 	PROCESS (clk, display_selector)
 	BEGIN
 		CASE display_selector IS
-			WHEN "000" =>
-				AN <= "11111110";
+			WHEN "000" => -- 1st 7seg is being written to
+				AN <= "11111110"; 
 				SEG <= seg1;
-			WHEN "001" =>
+			WHEN "001" => -- 2nd 7seg is being written to
 				AN <= "11111101";
-				SEG <= seg2;
-			WHEN "010" =>
+				SEG <= seg2; 
+			WHEN "010" => -- 3rd 7seg is being written to
 				AN <= "11111011";
 				SEG <= seg3;
-			WHEN "011" =>
+			WHEN "011" => -- 4th 7seg is being written to
 				AN <= "11110111";
 				SEG <= seg4;
-			WHEN "100" =>
+			WHEN "100" => -- 5th 7seg is being written to
 			    AN <= "11101111";
 			    SEG <= seg5;				
-			WHEN "101" =>
+			WHEN "101" => -- 6th 7seg is being written to
 			    AN <= "11011111";
 				SEG <= seg6;				
-			WHEN "110" =>
+			WHEN "110" => -- 7th 7seg is being written to
 			    AN <= "10111111";
 				SEG <= seg7;
-			WHEN "111" =>
+			WHEN "111" => -- 8th 7seg is being written to
 			    AN <= "01111111";
 				SEG <= seg8;
 			WHEN OTHERS =>

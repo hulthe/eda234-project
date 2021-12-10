@@ -18,7 +18,7 @@ ENTITY modulator IS
 	PORT
 	(
 		clk     : IN  STD_LOGIC;
-		reset_p : IN  STD_LOGIC;
+		reset_n : IN  STD_LOGIC;
 		start   : IN  STD_LOGIC;
 		data    : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		tx      : OUT STD_LOGIC;
@@ -41,7 +41,7 @@ BEGIN
 		VARIABLE clk_cycles : INTEGER := 0;
 	BEGIN
 		IF rising_edge(clk) THEN
-			IF (clk_cycles + 1) = (CLK_FREQ/CARRIER_FREQ) THEN
+			IF (clk_cycles + 1) = (CLK_FREQ/CARRIER_FREQ)/2 THEN
 				tx_signal <= NOT(tx_signal);
 				clk_cycles := 0;
 			ELSE
@@ -66,11 +66,12 @@ BEGIN
 
 	modulator_process :
 	PROCESS (clk)
-		VARIABLE data_index : INTEGER   := 6;
+		VARIABLE data_index : INTEGER   := 7;
 		VARIABLE start_flag : STD_LOGIC := '0';
 	BEGIN
-		IF reset_p = '1' THEN
-			data_index := 6;
+		IF reset_n = '0' THEN
+		    state_machine <= Idle;
+			data_index := 7;
 			start_flag := '0';
 			tx   <= '0';
 			busy <= '0';
@@ -119,9 +120,10 @@ BEGIN
 					IF bps_signal = '0' THEN
 						IF data_index = 0 THEN
 							data_index := 0;
+							data_index := 7;
 							state_machine <= Finish;
 						ELSE
-							data_index := data_index - 1;
+							data_index := data_index - 1;							
 							state_machine <= Set;
 						END IF;
 					END IF;
