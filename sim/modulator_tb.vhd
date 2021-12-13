@@ -63,10 +63,7 @@ architecture Behavioral of modulator_tb is
 			busy    : OUT STD_LOGIC;
 			done    : OUT STD_LOGIC);
 	END COMPONENT modulator;
-
-
-    
-
+ 
 begin
 
 modulator_comp :

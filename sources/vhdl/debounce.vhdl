@@ -14,7 +14,7 @@ END debounce;
 
 ARCHITECTURE debounce_arch OF debounce IS
   SIGNAL registers   : STD_LOGIC_VECTOR(1 DOWNTO 0); 
-  SIGNAL counter_set : STD_LOGIC;                    
+  SIGNAL counter_reset : STD_LOGIC;                    
 
 BEGIN
   
@@ -23,16 +23,18 @@ BEGIN
   
   BEGIN
     IF(reset_n = '0') THEN                        
-      registers <= (OTHERS => '0');                 
-      output <= '0';                                 
+      registers <= (OTHERS => '0');   
+      counter_reset <= '1';              
+      output <= '1';                                 
     
     ELSIF RISING_EDGE(clk) THEN          
-      registers(0) <= button;                        
+      
       registers(1) <= registers(0);
+      registers(0) <= button;                              
       
-      counter_set <= registers(0) xor registers(1); -- xor to determine if both registers have same value                  
+      counter_reset <= registers(0) xor registers(1); -- xor to determine if both registers have same value                  
       
-      If(counter_set = '1') THEN   -- if registers do not have the same value then reset counter                  
+      If(counter_reset = '1') THEN   -- if registers do not have the same value then reset counter                  
         clk_count := 0;                                  
       
       ELSIF(clk_count < clk_freq*stable_time/1000) THEN  

@@ -10,28 +10,29 @@ ENTITY seg_controller IS
 	);
 	PORT (
 		clk : IN STD_LOGIC;
-		seg1 : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-		seg2 : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-		seg3 : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-		seg4 : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-		seg5 : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-		seg6 : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-		seg7 : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-		seg8 : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
+		code: IN STD_LOGIC_VECTOR(2 DOWNTO 0);		
 		seg : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 		an : OUT STD_LOGIC_VECTOR(7 DOWNTO 0));
 END seg_controller;
 
 ARCHITECTURE Behavioral OF seg_controller IS
 
+    SIGNAL seg1 : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL seg2 : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL seg3 : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL seg4 : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL seg5 : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL seg6 : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL seg7 : STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL seg8 : STD_LOGIC_VECTOR (7 DOWNTO 0);
+
 	SIGNAL display_selector : UNSIGNED(2 DOWNTO 0) := "000";
-	SIGNAL clk_cycles : INTEGER := 0;
+	SIGNAL clk_cycles : INTEGER := 0;	
 
 BEGIN
 
 	pulse_process :
-	PROCESS (clk)
-		
+	PROCESS (clk)		
 	BEGIN
 		IF rising_edge(clk) THEN
 
@@ -49,6 +50,49 @@ BEGIN
 			END IF;
 		END IF;
 	END PROCESS pulse_process;
+	
+	code_process :
+	PROCESS (code)
+	BEGIN
+		CASE code IS
+			WHEN "000" => -- off 
+                seg8 <= "11111111";
+                seg7 <= "11111111";
+                seg6 <= "11111111";
+                seg5 <= "11111111";
+                seg4 <= "11111111";
+                seg3 <= "11111111";
+                seg2 <= "11111111";
+                seg1 <= "11111111";
+			WHEN "001" => -- Start.
+                seg8 <= "10010010"; -- S
+                seg7 <= "10000111"; -- t
+                seg6 <= "10001000"; -- A
+                seg5 <= "11001100"; -- r
+                seg4 <= "10000111"; -- t
+                seg3 <= "01111111"; -- .
+                seg2 <= "11111111";
+                seg1 <= "11111111";
+            WHEN "111" => -- Reset.
+                seg8 <= "11001100"; -- r
+                seg7 <= "10000110"; -- E
+                seg6 <= "10010010"; -- S
+                seg5 <= "10000110"; -- E
+                seg4 <= "10000111"; -- t
+                seg3 <= "01111111"; -- .
+                seg2 <= "11111111";
+                seg1 <= "11111111";                
+			WHEN OTHERS => -- error
+				seg8 <= "10000110"; -- E
+                seg7 <= "11001100"; -- r
+                seg6 <= "11001100"; -- r
+                seg5 <= "11110000";
+                seg4 <= "11001100"; -- r
+                seg3 <= "01111111"; -- .
+                seg2 <= "11111111";
+                seg1 <= "11111111";	
+		END CASE;	
+	END PROCESS code_process;
     
 	display_process :
 	PROCESS (clk, display_selector)
@@ -82,7 +126,6 @@ BEGIN
 				AN <= "11111111";
 				SEG <= "10000110"; -- Error	
 		END CASE;	
-
 	END PROCESS display_process;
 
 END Behavioral;
