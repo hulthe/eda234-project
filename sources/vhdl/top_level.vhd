@@ -12,12 +12,14 @@ ENTITY top_level IS
 		GUN_TRIGGER  : IN  STD_LOGIC;
 		CPU_RESETN   : IN  STD_LOGIC;
 		SEND_BUTTON  : IN  STD_LOGIC;
+		BTNC         : IN  STD_LOGIC;
+		PLAYER_NUM   : IN  STD_LOGIC_VECTOR(3 DOWNTO 0);
 		UART_RXD_OUT : OUT STD_LOGIC;
 		LASER_TX     : OUT STD_LOGIC;
 		LED16        : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
 		LED17        : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
 		SEG          : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		AN           : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+		AN           : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)		
 	);
 END top_level;
 
@@ -30,6 +32,7 @@ ARCHITECTURE Behavioral OF top_level IS
 	SIGNAL reset_signal   : STD_LOGIC;
 	SIGNAL send_signal    : STD_LOGIC;
 	SIGNAL trigger_signal : STD_LOGIC;
+	SIGNAL ok_signal : STD_LOGIC;				
 
 	COMPONENT debounce IS
 		GENERIC (
@@ -60,7 +63,8 @@ ARCHITECTURE Behavioral OF top_level IS
 	END COMPONENT UART_TX;
 
 	SIGNAL seg_code_signal : STD_LOGIC_VECTOR(2 DOWNTO 0);
-
+    SIGNAL seg_input_signal : STD_LOGIC_VECTOR(3 DOWNTO 0);
+    
 	COMPONENT seg_controller IS
 		GENERIC (
 			CLK_FREQ   : INTEGER := 100000000; -- hz
@@ -69,6 +73,7 @@ ARCHITECTURE Behavioral OF top_level IS
 		PORT (
 			clk  : IN  STD_LOGIC;
 			code : IN  STD_LOGIC_VECTOR(2 DOWNTO 0);
+			input: IN STD_LOGIC_VECTOR(3 DOWNTO 0);
 			seg  : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 			an   : OUT STD_LOGIC_VECTOR(7 DOWNTO 0));
 	END COMPONENT seg_controller;
@@ -122,6 +127,15 @@ BEGIN
 		button  => GUN_TRIGGER,
 		output  => trigger_signal
 	);
+	
+	ok_button_comp : debounce
+	PORT MAP
+	(
+		clk     => CLK100MHZ,
+		reset_n => reset_signal,
+		button  => BTNC,
+		output  => ok_signal
+	);
 
 	UART_TX_comp : UART_TX
 	PORT MAP
@@ -139,6 +153,7 @@ BEGIN
 	(
 		clk  => CLK100MHZ,
 		code => seg_code_signal,
+		input => PLAYER_NUM,
 		seg  => SEG,
 		an   => AN
 	);
@@ -161,32 +176,59 @@ BEGIN
 		);
 
 		top_level_process : PROCESS (CLK100MHZ)
+		  VARIABLE start_flag : STD_LOGIC := '0';
 		BEGIN
-			IF rising_edge(CLK100MHZ) THEN
+			IF rising_edge(CLK100MHZ) THEN															
+                
+                IF reset_signal = '0' THEN                    
+                    seg_code_signal <= "111";
+                    StateMachine <= Start;
+                    start_flag := '0';
+                ELSE
+                    CASE StateMachine IS
+                        WHEN Start =>
+                            seg_code_signal <= "001";
+                            
+                            IF ok_signal = '1' THEN
+                                start_flag := '1';
+                            ELSIF start_flag = '1' THEN
+                                start_flag := '0';
+                                StateMachine <= PlayerSelect;
+                            END IF;
+                        WHEN PlayerSelect =>                                                                            
+                            seg_code_signal <= "010";    
+                            
+                            IF ok_signal = '1' THEN
+                                start_flag := '1';
+                            ELSIF start_flag = '1' THEN
+                                start_flag := '0';
+                                StateMachine <= Play;
+                            END IF;
+                            
+                        WHEN Play =>
+                            modulator_start <= NOT(trigger_signal); 
+                            seg_code_signal <= "011";
+                        
+                        WHEN Finished =>
+                            seg_code_signal <= "011";           
+                                                                                
+                        WHEN PCTransmission =>
+                            uart_start      <= NOT(send_signal); 
+                            seg_code_signal <= "101";
+                        WHEN OTHERS =>
+                            seg_code_signal <= "000";
+                    END CASE;
+                END IF;                               
+                END IF;
+        END PROCESS top_level_process;        
 
-				UART_RXD_OUT    <= uart_out;
-				LASER_TX        <= modulator_out;
-				uart_start      <= NOT(send_signal);
-				modulator_start <= NOT(trigger_signal);
-
-				LED16           <= "0" & NOT(uart_out) & modulator_out;								
-				
-			END IF;
-        END PROCESS top_level_process;
         
-        seg_status_process : PROCESS (StateMachine)
+        debug_process: PROCESS(uart_out,modulator_out)
         BEGIN
-            IF reset_signal = '0' THEN
-                seg_code_signal <= "111";
-            ELSE
-                CASE StateMachine IS
-                    WHEN Start =>
-                        seg_code_signal <= "001";        
-                    WHEN OTHERS =>
-                        seg_code_signal <= "000";
-                END CASE;
-            END IF;
-        END PROCESS seg_status_process;
+                UART_RXD_OUT    <= uart_out;
+				LASER_TX        <= modulator_out;			
+				LED16           <= "0" & NOT(uart_out) & modulator_out;
+        END PROCESS debug_process;
         
         led_status_process : PROCESS (reset_signal, uart_busy, modulator_busy)
         BEGIN

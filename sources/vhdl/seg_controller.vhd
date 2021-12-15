@@ -3,6 +3,7 @@ LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
+
 ENTITY seg_controller IS
 	GENERIC (
 		CLK_FREQ : INTEGER := 100000000; -- hz
@@ -10,7 +11,8 @@ ENTITY seg_controller IS
 	);
 	PORT (
 		clk : IN STD_LOGIC;
-		code: IN STD_LOGIC_VECTOR(2 DOWNTO 0);		
+		code: IN STD_LOGIC_VECTOR(2 DOWNTO 0);	
+		input: IN STD_LOGIC_VECTOR(3 DOWNTO 0);	
 		seg : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 		an : OUT STD_LOGIC_VECTOR(7 DOWNTO 0));
 END seg_controller;
@@ -64,7 +66,8 @@ BEGIN
                 seg3 <= "11111111";
                 seg2 <= "11111111";
                 seg1 <= "11111111";
-			WHEN "001" => -- Start.
+                
+            WHEN "001" => -- Start.
                 seg8 <= "10010010"; -- S
                 seg7 <= "10000111"; -- t
                 seg6 <= "10001000"; -- A
@@ -73,6 +76,75 @@ BEGIN
                 seg3 <= "01111111"; -- .
                 seg2 <= "11111111";
                 seg1 <= "11111111";
+                
+			WHEN "010" => -- Player.
+                seg8 <= "10001100"; -- P
+                seg7 <= "11000111"; -- L
+                seg6 <= "10001000"; -- A
+                seg5 <= "10010001"; -- Y
+                seg4 <= "10000110"; -- E
+                seg3 <= "11001100"; -- r               
+                
+                CASE input IS
+                  WHEN "0000" => -- 1 
+                    seg2 <= "11000000";
+                    seg1 <= "11111001";
+                  WHEN "0001" => -- 2
+                    seg2 <= "11000000"; 
+                    seg1 <= "10100100";
+                  WHEN "0010" => -- 3
+                    seg2 <= "11000000"; 
+                    seg1 <= "10110000";
+                  WHEN "0011" => -- 4
+                    seg2 <= "11000000"; 
+                    seg1 <= "10011001";
+                  WHEN "0100" => -- 5
+                    seg2 <= "11000000"; 
+                    seg1 <= "10010010";
+                  WHEN "0101" => -- 6
+                    seg2 <= "11000000"; 
+                    seg1 <= "10000010";
+                  WHEN "0110" => -- 7 
+                    seg2 <= "11000000"; 
+                    seg1 <= "11111000";
+                  WHEN "0111" => -- 8
+                    seg2 <= "11000000"; 
+                    seg1 <= "10000000";
+                  WHEN "1000" => -- 9
+                    seg2 <= "11000000";  
+                    seg1 <= "10010000";
+                  WHEN "1001" => -- 10
+                    seg2 <= "11111001";  
+                    seg1 <= "11000000";
+                  WHEN "1010" => -- 11
+                    seg2 <= "11111001";  
+                    seg1 <= "11111001";
+                  WHEN "1011" => -- 12
+                    seg2 <= "11111001";  
+                    seg1 <= "10100100";
+                  WHEN "1100" => -- 13
+                    seg2 <= "11111001";  
+                    seg1 <= "10110000";
+                  WHEN "1101" => -- 14
+                    seg2 <= "11111001";  
+                    seg1 <= "10011001";
+                  WHEN "1110" => -- 15
+                    seg2 <= "11111001";  
+                    seg1 <= "10010010";
+                  WHEN "1111" => -- 16
+                    seg2 <= "11111001";  
+                    seg1 <= "10000010";                                
+                  WHEN OTHERS => seg1 <= "10000110"; -- Error
+                END CASE;
+            WHEN "011" => -- Play
+                seg8 <= "10001100"; -- P
+                seg7 <= "11000111"; -- L
+                seg6 <= "10001000"; -- A
+                seg5 <= "10010001"; -- Y
+                seg4 <= "01111111"; -- .
+                seg3 <= "11111111";
+                seg2 <= "11111111";
+                seg1 <= "11111111";                                                              
             WHEN "111" => -- Reset.
                 seg8 <= "11001100"; -- r
                 seg7 <= "10000110"; -- E
@@ -86,7 +158,7 @@ BEGIN
 				seg8 <= "10000110"; -- E
                 seg7 <= "11001100"; -- r
                 seg6 <= "11001100"; -- r
-                seg5 <= "11110000";
+                seg5 <= "11000000"; -- O
                 seg4 <= "11001100"; -- r
                 seg3 <= "01111111"; -- .
                 seg2 <= "11111111";
