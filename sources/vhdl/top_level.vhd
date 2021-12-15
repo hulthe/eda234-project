@@ -1,11 +1,13 @@
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
+USE ieee.numeric_std.all;
 
 ENTITY top_level IS
 	GENERIC (
 		CLK_FREQ     : INTEGER := 100000000; -- clk freq in Hz
 		CARRIER_FREQ : INTEGER := 36000; -- laser carrier freq in Hz
-		BPS          : INTEGER := 2 -- laser bits per second
+		BPS          : INTEGER := 2; -- laser bits per second
+        DATA_LEN: integer := 8
 	);
 	PORT (
 		CLK100MHZ    : IN  STD_LOGIC;
@@ -13,6 +15,8 @@ ENTITY top_level IS
 		CPU_RESETN   : IN  STD_LOGIC;
 		SEND_BUTTON  : IN  STD_LOGIC;
 		BTNC         : IN  STD_LOGIC;
+		FULL_HIT     : IN  STD_LOGIC;
+		HALF_HIT     : IN  STD_LOGIC;
 		PLAYER_NUM   : IN  STD_LOGIC_VECTOR(3 DOWNTO 0);
 		UART_RXD_OUT : OUT STD_LOGIC;
 		LASER_TX     : OUT STD_LOGIC;
@@ -99,8 +103,33 @@ ARCHITECTURE Behavioral OF top_level IS
 			busy    : OUT STD_LOGIC;
 			done    : OUT STD_LOGIC);
 	END COMPONENT modulator;
+	
+	SIGNAL demod_restart_signal : std_logic;
+	SIGNAL demod_data_signal: std_logic_vector(DATA_LEN-1 DOWNTO 0);
+	SIGNAL demod_ready_signal: STD_LOGIC;		
+	
+	
+    COMPONENT demodulator is
+    generic
+    (
+        CLK_FREQ: integer := 100000000; -- clk freq in Hz
+        BPS:      integer := 100;        -- bits per second
+        DATA_LEN: integer := 8
+    );
+    port
+    (
+        clk       : in  std_logic;
+        reset_n   : in  std_logic;
+        restart   : in  std_logic;
+        data      : out std_logic_vector(DATA_LEN-1 DOWNTO 0);
+        data_ready: out std_logic := '0';
+        rx        : in  std_logic
+    );
+    end COMPONENT demodulator;
+    
 
-BEGIN
+BEGIN   
+    
 	reset_button_comp : debounce
 	PORT MAP
 	(
@@ -153,11 +182,12 @@ BEGIN
 	(
 		clk  => CLK100MHZ,
 		code => seg_code_signal,
-		input => PLAYER_NUM,
+		input => seg_input_signal,
 		seg  => SEG,
 		an   => AN
 	);
 
+    
 	modulator_comp :
 	COMPONENT modulator
 		GENERIC MAP(
@@ -173,23 +203,37 @@ BEGIN
 			tx      => modulator_out,
 			busy    => modulator_busy,
 			done    => modulator_done
-		);
+    );
+    
+    	
+	demod_comp : demodulator
+	PORT MAP
+	(
+		clk     => CLK100MHZ,
+		reset_n => reset_signal,
+		restart  => demod_restart_signal,
+		data  => demod_data_signal,
+		data_ready  => demod_ready_signal,
+		rx => FULL_HIT
+	);
 
 		top_level_process : PROCESS (CLK100MHZ)
 		  VARIABLE start_flag : STD_LOGIC := '0';
+		  VARIABLE lives : UNSIGNED(3 DOWNTO 0) := "1000";
 		BEGIN
 			IF rising_edge(CLK100MHZ) THEN															
                 
                 IF reset_signal = '0' THEN                    
                     seg_code_signal <= "111";
                     StateMachine <= Start;
+                    lives := "1000";
                     start_flag := '0';
                 ELSE
                     CASE StateMachine IS
                         WHEN Start =>
                             seg_code_signal <= "001";
                             
-                            IF ok_signal = '1' THEN
+                            IF NOT(trigger_signal) = '1' THEN
                                 start_flag := '1';
                             ELSIF start_flag = '1' THEN
                                 start_flag := '0';
@@ -197,38 +241,59 @@ BEGIN
                             END IF;
                         WHEN PlayerSelect =>                                                                            
                             seg_code_signal <= "010";    
+                            seg_input_signal <= PLAYER_NUM;
                             
-                            IF ok_signal = '1' THEN
-                                start_flag := '1';
+                            IF NOT(trigger_signal) = '1' THEN
+                                start_flag := '1';                               
                             ELSIF start_flag = '1' THEN
                                 start_flag := '0';
+                                modulator_data <= PLAYER_NUM&PLAYER_NUM;
                                 StateMachine <= Play;
                             END IF;
                             
                         WHEN Play =>
                             modulator_start <= NOT(trigger_signal); 
                             seg_code_signal <= "011";
+                            seg_input_signal <= std_logic_vector(lives);
+                            
+                            -- TODO probably some edge detection
+                            IF lives = "0001" and demod_ready_signal = '1'THEN
+                                StateMachine <= Finished;
+                            ELSIF demod_restart_signal = '1' and demod_ready_signal = '0' THEN
+                                demod_ready_signal <= '0';                                
+                            ELSIF demod_ready_signal = '1' and demod_restart_signal = '0' THEN         
+                                demod_restart_signal <= '1';                                   
+                                lives := lives - 1;                        
+                            END IF;                               
+
                         
                         WHEN Finished =>
-                            seg_code_signal <= "011";           
-                                                                                
+                            seg_code_signal <= "100";           
+                            
+                            IF NOT(trigger_signal) = '1' THEN
+                                start_flag := '1';
+                            ELSIF start_flag = '1' THEN
+                                start_flag := '0';
+                                StateMachine <= Start;
+                            END IF;                                                    
                         WHEN PCTransmission =>
                             uart_start      <= NOT(send_signal); 
                             seg_code_signal <= "101";
+                            
                         WHEN OTHERS =>
                             seg_code_signal <= "000";
                     END CASE;
                 END IF;                               
                 END IF;
-        END PROCESS top_level_process;        
+        END PROCESS top_level_process;              
 
         
-        debug_process: PROCESS(uart_out,modulator_out)
+        debug_process: PROCESS(HALF_HIT, uart_out, modulator_out)
         BEGIN
                 UART_RXD_OUT    <= uart_out;
-				LASER_TX        <= modulator_out;			
-				LED16           <= "0" & NOT(uart_out) & modulator_out;
-        END PROCESS debug_process;
+				LASER_TX        <= modulator_out;							
+				LED16           <= NOT(FULL_HIT) & NOT(uart_out) & modulator_out;
+        END PROCESS debug_process;                
         
         led_status_process : PROCESS (reset_signal, uart_busy, modulator_busy)
         BEGIN

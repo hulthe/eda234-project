@@ -11,7 +11,7 @@ entity demodulator is
 	port
 	(
 		clk       : in  std_logic;
-		reset_p   : in  std_logic;
+		reset_n   : in  std_logic;
 		restart   : in  std_logic;
 		data      : out std_logic_vector(DATA_LEN-1 DOWNTO 0);
 		data_ready: out std_logic := '0';
@@ -27,10 +27,10 @@ architecture Behavioral of demodulator is
     signal sample_signal: std_logic;
 begin
 
-    process(clk, reset_p)
+    process(clk, reset_n)
         variable cycles: integer := 0;
     begin
-        if reset_p = '1' then
+        if reset_n = '0' then
             sample_signal <= '0';
             cycles := 0;
         elsif rising_edge(clk) then
@@ -48,11 +48,11 @@ begin
         end if;    
     end process;
 
-    process(clk, reset_p, restart)
+    process(clk, reset_n, restart)
         variable rx_prev: std_logic := '0';
         variable bit_sample: std_logic_vector(1 downto 0) := "00";
     begin
-        if reset_p = '1' or restart = '1' then
+        if reset_n = '0' or restart = '1' then
             state <= Idle;
             data_index <= DATA_LEN + 1;
             data_ready <= '0';
