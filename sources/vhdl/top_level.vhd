@@ -6,7 +6,7 @@ ENTITY top_level IS
 	GENERIC (
 		CLK_FREQ     : INTEGER := 100000000; -- clk freq in Hz
 		CARRIER_FREQ : INTEGER := 36000; -- laser carrier freq in Hz
-		BPS          : INTEGER := 2; -- laser bits per second
+		BPS          : INTEGER := 5; -- laser bits per second
         DATA_LEN: integer := 8
 	);
 	PORT (
@@ -15,6 +15,7 @@ ENTITY top_level IS
 		CPU_RESETN   : IN  STD_LOGIC;
 		SEND_BUTTON  : IN  STD_LOGIC;
 		BTNC         : IN  STD_LOGIC;
+		BTNU         : IN  STD_LOGIC;
 		FULL_HIT     : IN  STD_LOGIC;
 		HALF_HIT     : IN  STD_LOGIC;
 		PLAYER_NUM   : IN  STD_LOGIC_VECTOR(3 DOWNTO 0);
@@ -29,7 +30,7 @@ END top_level;
 
 ARCHITECTURE Behavioral OF top_level IS
 
-	TYPE states IS (Start, PlayerSelect, Play,
+	TYPE states IS (Start, PlayerSelect, Play, Timeout,
 		Finished, PCTransmission);
 	SIGNAL StateMachine   : states := Start;
 
@@ -67,7 +68,7 @@ ARCHITECTURE Behavioral OF top_level IS
 	END COMPONENT UART_TX;
 
 	SIGNAL seg_code_signal : STD_LOGIC_VECTOR(2 DOWNTO 0);
-    SIGNAL seg_input_signal : STD_LOGIC_VECTOR(3 DOWNTO 0);
+    SIGNAL seg_input_signal : STD_LOGIC_VECTOR(10 DOWNTO 0);
     
 	COMPONENT seg_controller IS
 		GENERIC (
@@ -77,7 +78,7 @@ ARCHITECTURE Behavioral OF top_level IS
 		PORT (
 			clk  : IN  STD_LOGIC;
 			code : IN  STD_LOGIC_VECTOR(2 DOWNTO 0);
-			input: IN STD_LOGIC_VECTOR(3 DOWNTO 0);
+			input: IN STD_LOGIC_VECTOR(10 DOWNTO 0);
 			seg  : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 			an   : OUT STD_LOGIC_VECTOR(7 DOWNTO 0));
 	END COMPONENT seg_controller;
@@ -127,8 +128,42 @@ ARCHITECTURE Behavioral OF top_level IS
     );
     end COMPONENT demodulator;
     
+    SIGNAL timer_start_signal : std_logic;
+	SIGNAL timer_length_signal: std_logic_vector(1 DOWNTO 0);
+	SIGNAL timer_unit_signal: std_logic_vector(3 DOWNTO 0);
+	SIGNAL timer_tenth_signal: std_logic_vector(2 DOWNTO 0);
+	SIGNAL timer_done_signal: STD_LOGIC;
+    
+    COMPONENT timer IS
+	GENERIC (
+		CLK_FREQ : INTEGER := 100000000); -- clk freq in HZ		
+	PORT (
+		clk   : IN  STD_LOGIC;
+		reset_n : IN  STD_LOGIC;
+		start   : IN STD_LOGIC;
+		length  : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
+		unit    : OUT STD_LOGIC_VECTOR (3 DOWNTO 0);
+		tenth   : OUT STD_LOGIC_VECTOR (2 DOWNTO 0);
+		done    : OUT STD_LOGIC);
+    END COMPONENT timer; 
+    
 
 BEGIN   
+    
+    timer_comp : timer
+    GENERIC MAP(
+			CLK_FREQ     => CLK_FREQ/100 -- clk freq in Hz			
+		)
+	PORT MAP
+	(
+		clk     => CLK100MHZ,
+		reset_n => reset_signal,
+		start   => timer_start_signal,
+		length  => timer_length_signal,
+		unit    => timer_unit_signal,
+		tenth   => timer_tenth_signal,
+		done    => timer_done_signal
+	);
     
 	reset_button_comp : debounce
 	PORT MAP
@@ -241,31 +276,62 @@ BEGIN
                             END IF;
                         WHEN PlayerSelect =>                                                                            
                             seg_code_signal <= "010";    
-                            seg_input_signal <= PLAYER_NUM;
+                            seg_input_signal <= "0000000" & PLAYER_NUM;
                             
                             IF NOT(trigger_signal) = '1' THEN
                                 start_flag := '1';                               
                             ELSIF start_flag = '1' THEN
                                 start_flag := '0';
                                 modulator_data <= PLAYER_NUM&PLAYER_NUM;
+                                lives := "1000";
                                 StateMachine <= Play;
                             END IF;
                             
                         WHEN Play =>
                             modulator_start <= NOT(trigger_signal); 
                             seg_code_signal <= "011";
-                            seg_input_signal <= std_logic_vector(lives);
+                            seg_input_signal <= "0000000" & std_logic_vector(lives);                                                        
                             
-                            -- TODO probably some edge detection
-                            IF lives = "0001" and demod_ready_signal = '1'THEN
-                                StateMachine <= Finished;
-                            ELSIF demod_restart_signal = '1' and demod_ready_signal = '0' THEN
-                                demod_ready_signal <= '0';                                
-                            ELSIF demod_ready_signal = '1' and demod_restart_signal = '0' THEN         
-                                demod_restart_signal <= '1';                                   
-                                lives := lives - 1;                        
-                            END IF;                               
-
+                            IF start_flag = '1' THEN -- This avoids substracting 2
+                                start_flag := '0';
+                                StateMachine <= Timeout;                                
+                            ELSE
+                                                                                                        
+                                IF BTNU = '1' THEN        
+                                    IF lives <= "0010" THEN
+                                        StateMachine <= Finished;
+                                    ELSE                                                                                                                   
+                                        timer_start_signal <= '1';
+                                        timer_length_signal <= "10";
+                                        lives := lives - 2;                                                                           
+                                        start_flag := '1';
+                                    END IF;                                
+                                                                                                                                                       
+                                ELSIF BTNC = '1' THEN
+                                    IF lives = "0001" THEN
+                                        StateMachine <= Finished;
+                                    ELSE                                                                                        
+                                        timer_start_signal <= '1';
+                                        timer_length_signal <= "01";                   
+                                        lives := lives - 1;                                                        
+                                        start_flag := '1';
+                                    END IF;                                                                                              
+                                END IF;                                                                                       
+                                
+                            END IF;                                
+                                                                                    
+                        
+                        WHEN Timeout =>
+                        
+                            seg_code_signal <= "101";                                                           
+                            seg_input_signal <= demod_data_signal(3 DOWNTO 0) & timer_tenth_signal & timer_unit_signal;                               
+                                                                                    
+                            IF timer_done_signal = '1' THEN                                                                
+                                                        
+                                timer_start_signal <= '0';
+                                demod_restart_signal <= '1';                                
+                                StateMachine <= Play;
+                            END IF;                                                                                               
                         
                         WHEN Finished =>
                             seg_code_signal <= "100";           
@@ -275,11 +341,11 @@ BEGIN
                             ELSIF start_flag = '1' THEN
                                 start_flag := '0';
                                 StateMachine <= Start;
-                            END IF;                                                    
+                            END IF;     
+                                                                           
                         WHEN PCTransmission =>
                             uart_start      <= NOT(send_signal); 
-                            seg_code_signal <= "101";
-                            
+                            seg_code_signal <= "101";                                                       
                         WHEN OTHERS =>
                             seg_code_signal <= "000";
                     END CASE;

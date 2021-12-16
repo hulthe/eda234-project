@@ -12,7 +12,7 @@ ENTITY seg_controller IS
 	PORT (
 		clk : IN STD_LOGIC;
 		code: IN STD_LOGIC_VECTOR(2 DOWNTO 0);	
-		input: IN STD_LOGIC_VECTOR(3 DOWNTO 0);	
+		input: IN STD_LOGIC_VECTOR(10 DOWNTO 0);	
 		seg : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 		an : OUT STD_LOGIC_VECTOR(7 DOWNTO 0));
 END seg_controller;
@@ -85,7 +85,7 @@ BEGIN
                 seg4 <= "10000110"; -- E
                 seg3 <= "11001100"; -- r               
                 
-                CASE input IS
+                CASE input(3 DOWNTO 0) IS
                   WHEN "0000" => -- 1 
                     seg2 <= "11000000";
                     seg1 <= "11111001";
@@ -145,7 +145,7 @@ BEGIN
                 seg3 <= "10001001"; -- H               
                 seg2 <= "10001100"; -- P                
                 
-                CASE input IS
+                CASE input(3 DOWNTO 0) IS
                   WHEN "0001" => -- 1 
                     seg1 <= "11111001";
                   WHEN "0010" => -- 2 
@@ -166,11 +166,117 @@ BEGIN
                   seg1 <= "10000110"; -- Error            
                END CASE;
                
+           WHEN "101" => -- Timeout
+                seg8 <= "10001100"; -- P
+                
+                CASE input(10 DOWNTO 7) IS
+                  WHEN "0000" => -- 1 
+                    seg7 <= "11000000";
+                    seg6 <= "11111001";
+                  WHEN "0001" => -- 2
+                    seg7 <= "11000000"; 
+                    seg6 <= "10100100";
+                  WHEN "0010" => -- 3
+                    seg7 <= "11000000"; 
+                    seg6 <= "10110000";
+                  WHEN "0011" => -- 4
+                    seg7 <= "11000000"; 
+                    seg6 <= "10011001";
+                  WHEN "0100" => -- 5
+                    seg7 <= "11000000"; 
+                    seg6 <= "10010010";
+                  WHEN "0101" => -- 6
+                    seg7 <= "11000000"; 
+                    seg6 <= "10000010";
+                  WHEN "0110" => -- 7 
+                    seg7 <= "11000000"; 
+                    seg6 <= "11111000";
+                  WHEN "0111" => -- 8
+                    seg7 <= "11000000"; 
+                    seg6 <= "10000000";
+                  WHEN "1000" => -- 9
+                    seg7 <= "11000000";  
+                    seg6 <= "10010000";
+                  WHEN "1001" => -- 10
+                    seg7 <= "11111001";  
+                    seg6 <= "11000000";
+                  WHEN "1010" => -- 11
+                    seg7 <= "11111001";  
+                    seg6 <= "11111001";
+                  WHEN "1011" => -- 12
+                    seg7 <= "11111001";  
+                    seg6 <= "10100100";
+                  WHEN "1100" => -- 13
+                    seg7 <= "11111001";  
+                    seg6 <= "10110000";
+                  WHEN "1101" => -- 14
+                    seg7 <= "11111001";  
+                    seg6 <= "10011001";
+                  WHEN "1110" => -- 15
+                    seg7 <= "11111001";  
+                    seg6 <= "10010010";
+                  WHEN "1111" => -- 16
+                    seg7 <= "11111001";  
+                    seg6 <= "10000010";                                
+                  WHEN OTHERS =>
+                    seg7 <= "10000110"; 
+                    seg6 <= "10000110"; -- Error
+                END CASE;
+                
+                
+                seg5 <= "10001001"; -- H
+                seg4 <= "11111001"; -- I                
+                seg3 <= "10000111"; -- t                  
+                
+                CASE input(6 DOWNTO 4) IS
+                  WHEN "000" => -- 0 
+                    seg2 <= "11000000";  
+                  WHEN "001" => -- 1 
+                    seg2 <= "11111001";
+                  WHEN "010" => -- 2 
+                    seg2 <= "10100100";
+                  WHEN "011" => -- 3 
+                    seg2 <= "10110000";
+                  WHEN "100" => -- 4 
+                    seg2 <= "10011001";
+                  WHEN "101" => -- 5 
+                    seg2 <= "10010010";
+                  WHEN "110" => -- 6 
+                    seg2 <= "10000010";                                            
+                  WHEN OTHERS => 
+                    seg2 <= "10000110"; -- Error            
+               END CASE;    
+               
+               CASE input(3 DOWNTO 0) IS               
+                  WHEN "0000" => -- 0 
+                    seg1 <= "11000000";  
+                  WHEN "0001" => -- 1 
+                    seg1 <= "11111001";
+                  WHEN "0010" => -- 2 
+                    seg1 <= "10100100";
+                  WHEN "0011" => -- 3 
+                    seg1 <= "10110000";
+                  WHEN "0100" => -- 4 
+                    seg1 <= "10011001";
+                  WHEN "0101" => -- 5 
+                    seg1 <= "10010010";
+                  WHEN "0110" => -- 6 
+                    seg1 <= "10000010";    
+                  WHEN "0111"  => -- 7  
+                    seg1 <= "11111000";
+                  WHEN "1000" => -- 8 
+                    seg1 <= "10000000";
+                  WHEN "1001" => -- 9  
+                    seg1 <= "10010000";                                                 
+                  WHEN OTHERS => 
+                   seg1 <= "10000110"; -- Error            
+               END CASE;   
+           
            WHEN "100" => -- Finished            
 
                 seg8 <= "10100001"; -- D
                 seg7 <= "10000110"; -- E
-                seg6 <= "11001000"; -- A                
+                seg6 <= "10001000"; -- A                
                 seg5 <= "10100001"; -- D
                 seg4 <= "01111111"; -- .
                 seg3 <= "11111111";
@@ -185,7 +291,8 @@ BEGIN
                 seg4 <= "10000111"; -- t
                 seg3 <= "01111111"; -- .
                 seg2 <= "11111111";
-                seg1 <= "11111111";                
+                seg1 <= "11111111";      
+                          
 			WHEN OTHERS => -- error
 				seg8 <= "10000110"; -- E
                 seg7 <= "11001100"; -- r
