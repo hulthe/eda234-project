@@ -13,6 +13,7 @@ ENTITY modulator IS
 	(
 		CLK_FREQ     : INTEGER := 100000000; -- clk freq in Hz
 		CARRIER_FREQ : INTEGER := 38000;     -- carrier freq in Hz
+		DATA_LEN : INTEGER := 6;     -- carrier freq in Hz
 		BPS          : INTEGER := 100        -- bits per second
 	);
 	PORT
@@ -20,7 +21,7 @@ ENTITY modulator IS
 		clk     : IN  STD_LOGIC;
 		reset_n : IN  STD_LOGIC;
 		start   : IN  STD_LOGIC;
-		data    : IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
+		data    : IN  STD_LOGIC_VECTOR(DATA_LEN-1 DOWNTO 0);
 		tx      : OUT STD_LOGIC;
 		busy    : OUT STD_LOGIC;
 		done    : OUT STD_LOGIC);
@@ -67,12 +68,12 @@ BEGIN
 
 	modulator_process :
 	PROCESS (clk)
-		VARIABLE data_index : INTEGER   := 7;
+		VARIABLE data_index : INTEGER   := DATA_LEN-1;
 		VARIABLE start_flag : STD_LOGIC := '0';
 	BEGIN
 		IF reset_n = '0' THEN
 		    state_machine <= Idle;
-			data_index := 7;
+			data_index := DATA_LEN-1;
 			start_flag := '0';
 			tx   <= '0';
 			busy <= '0';
@@ -121,7 +122,7 @@ BEGIN
 					IF bps_signal = '0' THEN
 						IF data_index = 0 THEN
 							data_index := 0;
-							data_index := 7;
+							data_index := DATA_LEN-1;
 							state_machine <= Finish;
 						ELSE
 							data_index := data_index - 1;							
@@ -132,6 +133,7 @@ BEGIN
 				WHEN Finish =>
 					busy <= '0';
 					done <= '1';
+					tx <= '0';
 
 					IF start = '0' THEN						
 						state_machine <= Idle;
