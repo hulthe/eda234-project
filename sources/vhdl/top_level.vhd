@@ -289,7 +289,7 @@ BEGIN
 				hits <= (OTHERS => '0');
 				start_flag := '0';
 
-				ELSIF rising_edge(CLK100MHZ) THEN
+            ELSIF rising_edge(CLK100MHZ) THEN
 				CASE StateMachine IS
 					WHEN Start =>
 						seg_code_signal <= "001";
@@ -299,136 +299,136 @@ BEGIN
 						ELSIF start_flag = '1' AND NOT(trigger_signal) = '0' THEN
 							start_flag := '0';
 							StateMachine <= PlayerSelect;
-				END IF;
-	WHEN PlayerSelect =>
-	seg_code_signal <= "010";
-	seg_input_signal <= "0000000" & PLAYER_NUM;
+				        END IF;
+                    WHEN PlayerSelect =>
+                        seg_code_signal <= "010";
+                        seg_input_signal <= "0000000" & PLAYER_NUM;
 
-	IF NOT(trigger_signal) = '1' THEN
-		start_flag := '1';
-	ELSIF start_flag = '1' AND NOT(trigger_signal) = '0' THEN
-		start_flag := '0';
-		modulator_data <= "0" & PLAYER_NUM & "0";
-		lives := "1000";
-		StateMachine <= Play;
-		demod_start_signal <= '1';
-	END IF;
+                        IF NOT(trigger_signal) = '1' THEN
+                            start_flag := '1';
+                        ELSIF start_flag = '1' AND NOT(trigger_signal) = '0' THEN
+                            start_flag := '0';
+                            modulator_data <= "0" & PLAYER_NUM & "0";
+                            lives := "1000";
+                            StateMachine <= Play;
+                            demod_start_signal <= '1';
+                        END IF;
+                    
+                    WHEN Play =>
+                        modulator_start <= NOT(trigger_signal);
+                    
+                        IF trigger_signal = '0' THEN
+                            audio_trigger_signal <= "001";
+                        ELSE
+                            audio_trigger_signal <= "000";
+                        END IF;
+                    
+                        seg_code_signal <= "011";
+                        seg_input_signal <= "0000000" & STD_LOGIC_VECTOR(lives);
+                    
+                        IF start_flag = '1' THEN -- This avoids substracting 2                                                        
+                            start_flag := '0';
+                            audio_trigger_signal <= "000";
+                            demod_start_signal <= '0';
+                            StateMachine <= Timeout;
+                        ELSE
+                    
+                            IF demod_ready_signal = '1' THEN
+                                audio_trigger_signal <= "100";
+                    
+                                IF lives <= "0010" THEN
+                                    demod_start_signal <= '0';
+                                    start_flag := '0';
+                                    StateMachine <= Finished;
+                                ELSE
+                                    timer_start_signal <= '1';
+                                    timer_length_signal <= "10";
+                                    lives := lives - 2;
+                                    hits <= hits + 2;
+                                    start_flag := '1';
+                                END IF;
+                    
+                            ELSIF BTNC = '1' THEN
+                    
+                                audio_trigger_signal <= "010";
+                    
+                                IF lives = "0001" THEN
+                                    demod_start_signal <= '0';
+                                    start_flag := '0';
+                                    StateMachine <= Finished;
+                                ELSE
+                                    timer_start_signal <= '1';
+                                    timer_length_signal <= "01";
+                                    lives := lives - 1;
+                                    hits <= hits + 1;
+                                    start_flag := '1';
+                                END IF;
+                            END IF;
+                    
+                        END IF;
+                    WHEN Timeout =>
+                    
+                        seg_code_signal <= "101";
+                        seg_input_signal <= demod_out_signal(DATA_LEN - 2 DOWNTO 1) & timer_tenth_signal & timer_unit_signal;
+                    
+                        IF timer_done_signal = '1' THEN
+                            demod_start_signal <= '1';
+                            timer_start_signal <= '0';
+                            StateMachine <= Play;
+                        END IF;
+                    
+                    WHEN Finished =>
+                        seg_code_signal <= "100";
+                        IF NOT(trigger_signal) = '1' THEN
+                            start_flag := '1';
+                        ELSIF start_flag = '1' AND NOT(trigger_signal) = '0' THEN
+                            start_flag := '0';
+                            StateMachine <= Start;
+                        END IF;
+                    
+                        WHEN OTHERS =>
+                        seg_code_signal <= "000";
+                    END CASE;
+                END IF;
+            END PROCESS top_level_process;
 
-	WHEN Play =>
-	modulator_start <= NOT(trigger_signal);
+            uart_process : PROCESS (CLK100MHZ)
+                VARIABLE start_flag : STD_LOGIC := '0';
+            BEGIN
+                IF rising_edge(CLK100MHZ) THEN
+            
+                    uart_msg <= STD_LOGIC_VECTOR(hits);
+            
+                    IF uart_busy = '1' THEN
+                        uart_start <= '0';
+                    ELSE
+                        IF NOT(send_signal) = '1' THEN
+                            start_flag := '1';
+                        ELSIF start_flag = '1' AND NOT(send_signal) = '0' THEN
+                            start_flag := '0';
+                            uart_start <= '1';
+                        END IF;
+                    END IF;
+            
+                END IF;
+            END PROCESS uart_process;
 
-	IF trigger_signal = '0' THEN
-		audio_trigger_signal <= "001";
-	ELSE
-		audio_trigger_signal <= "000";
-	END IF;
-
-	seg_code_signal <= "011";
-	seg_input_signal <= "0000000" & STD_LOGIC_VECTOR(lives);
-
-	IF start_flag = '1' THEN -- This avoids substracting 2                                                        
-		start_flag := '0';
-		audio_trigger_signal <= "000";
-		demod_start_signal <= '0';
-		StateMachine <= Timeout;
-	ELSE
-
-		IF demod_ready_signal = '1' THEN
-			audio_trigger_signal <= "100";
-
-			IF lives <= "0010" THEN
-				demod_start_signal <= '0';
-				start_flag := '0';
-				StateMachine <= Finished;
-			ELSE
-				timer_start_signal <= '1';
-				timer_length_signal <= "10";
-				lives := lives - 2;
-				hits <= hits + 2;
-				start_flag := '1';
-			END IF;
-
-		ELSIF BTNC = '1' THEN
-
-			audio_trigger_signal <= "010";
-
-			IF lives = "0001" THEN
-				demod_start_signal <= '0';
-				start_flag := '0';
-				StateMachine <= Finished;
-			ELSE
-				timer_start_signal <= '1';
-				timer_length_signal <= "01";
-				lives := lives - 1;
-				hits <= hits + 1;
-				start_flag := '1';
-			END IF;
-		END IF;
-
-	END IF;
-	WHEN Timeout =>
-
-	seg_code_signal <= "101";
-	seg_input_signal <= demod_out_signal(DATA_LEN - 2 DOWNTO 1) & timer_tenth_signal & timer_unit_signal;
-
-	IF timer_done_signal = '1' THEN
-		demod_start_signal <= '1';
-		timer_start_signal <= '0';
-		StateMachine <= Play;
-	END IF;
-
-	WHEN Finished =>
-	seg_code_signal <= "100";
-	IF NOT(trigger_signal) = '1' THEN
-		start_flag := '1';
-	ELSIF start_flag = '1' AND NOT(trigger_signal) = '0' THEN
-		start_flag := '0';
-		StateMachine <= Start;
-	END IF;
-
-	WHEN OTHERS =>
-	seg_code_signal <= "000";
-END CASE;
-END IF;
-END PROCESS top_level_process;
-
-uart_process : PROCESS (CLK100MHZ)
-	VARIABLE start_flag : STD_LOGIC := '0';
-BEGIN
-	IF rising_edge(CLK100MHZ) THEN
-
-		uart_msg <= STD_LOGIC_VECTOR(hits);
-
-		IF uart_busy = '1' THEN
-			uart_start <= '0';
-		ELSE
-			IF NOT(send_signal) = '1' THEN
-				start_flag := '1';
-			ELSIF start_flag = '1' AND NOT(send_signal) = '0' THEN
-				start_flag := '0';
-				uart_start <= '1';
-			END IF;
-		END IF;
-
-	END IF;
-END PROCESS uart_process;
-
-debug_process : PROCESS (HALF_HIT, uart_out, modulator_out)
-BEGIN
-	UART_RXD_OUT <= uart_out;
-	LASER_TX <= modulator_out;
-	LED16 <= NOT(FULL_HIT) & NOT(uart_out) & modulator_out;
-END PROCESS debug_process;
-
-led_status_process : PROCESS (reset_signal, uart_busy, modulator_busy)
-BEGIN
-	IF reset_signal = '0' THEN
-		LED17 <= "100"; -- red for reset
-	ELSIF modulator_busy = '1' OR uart_busy = '1' THEN
-		LED17 <= "110"; -- yellow for busy
-	ELSE
-		LED17 <= "001"; -- blue for idle
-	END IF;
-END PROCESS led_status_process;
+            debug_process : PROCESS (HALF_HIT, uart_out, modulator_out)
+            BEGIN
+                UART_RXD_OUT <= uart_out;
+                LASER_TX <= modulator_out;
+                LED16 <= NOT(FULL_HIT) & NOT(uart_out) & modulator_out;
+            END PROCESS debug_process;
+            
+            led_status_process : PROCESS (reset_signal, uart_busy, modulator_busy)
+            BEGIN
+                IF reset_signal = '0' THEN
+                    LED17 <= "100"; -- red for reset
+                ELSIF modulator_busy = '1' OR uart_busy = '1' THEN
+                    LED17 <= "110"; -- yellow for busy
+                ELSE
+                    LED17 <= "001"; -- blue for idle
+                END IF;
+            END PROCESS led_status_process;
 
 END Behavioral;

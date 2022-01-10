@@ -30,7 +30,15 @@ ARCHITECTURE Behavioral OF seg_controller IS
 
 	SIGNAL display_selector : UNSIGNED(2 DOWNTO 0) := "000";
 	SIGNAL clk_cycles : INTEGER := 0;	
-
+    
+    SIGNAL char_A : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10001000";
+    SIGNAL char_E : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10000110";
+    SIGNAL char_r : STD_LOGIC_VECTOR (7 DOWNTO 0) := "11001100";
+    SIGNAL char_S : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10010010";
+    SIGNAL char_t : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10000111";
+    SIGNAL char_dot : STD_LOGIC_VECTOR (7 DOWNTO 0) := "01111111";        
+    SIGNAL char_off : STD_LOGIC_VECTOR (7 DOWNTO 0) := "11111111";        
+    
 BEGIN
 
 	pulse_process :
@@ -54,36 +62,36 @@ BEGIN
 	END PROCESS pulse_process;
 	
 	code_process :
-	PROCESS (code)
+	PROCESS (code)        
 	BEGIN
 		CASE code IS
 			WHEN "000" => -- off 
-                seg8 <= "11111111";
-                seg7 <= "11111111";
-                seg6 <= "11111111";
-                seg5 <= "11111111";
-                seg4 <= "11111111";
-                seg3 <= "11111111";
-                seg2 <= "11111111";
-                seg1 <= "11111111";
+                seg8 <= char_off;
+                seg7 <= char_off;
+                seg6 <= char_off;
+                seg5 <= char_off;
+                seg4 <= char_off;
+                seg3 <= char_off;
+                seg2 <= char_off;
+                seg1 <= char_off;
                 
             WHEN "001" => -- Start.
-                seg8 <= "10010010"; -- S
-                seg7 <= "10000111"; -- t
-                seg6 <= "10001000"; -- A
-                seg5 <= "11001100"; -- r
-                seg4 <= "10000111"; -- t
-                seg3 <= "01111111"; -- .
-                seg2 <= "11111111";
-                seg1 <= "11111111";
+                seg8 <= char_S; -- S
+                seg7 <= char_t; -- t
+                seg6 <= char_A; -- A
+                seg5 <= char_r; -- r
+                seg4 <= char_t; -- t
+                seg3 <= char_dot; -- .
+                seg2 <= char_off;
+                seg1 <= char_off;
                 
 			WHEN "010" => -- Player.
                 seg8 <= "10001100"; -- P
                 seg7 <= "11000111"; -- L
-                seg6 <= "10001000"; -- A
+                seg6 <= char_A; -- A
                 seg5 <= "10010001"; -- Y
-                seg4 <= "10000110"; -- E
-                seg3 <= "11001100"; -- r               
+                seg4 <= char_E; -- E
+                seg3 <= char_r; -- r               
                 
                 CASE input(3 DOWNTO 0) IS
                   WHEN "0000" => -- 1 
@@ -100,7 +108,7 @@ BEGIN
                     seg1 <= "10011001";
                   WHEN "0100" => -- 5
                     seg2 <= "11000000"; 
-                    seg1 <= "10010010";
+                    seg1 <= char_S;
                   WHEN "0101" => -- 6
                     seg2 <= "11000000"; 
                     seg1 <= "10000010";
@@ -130,7 +138,7 @@ BEGIN
                     seg1 <= "10011001";
                   WHEN "1110" => -- 15
                     seg2 <= "11111001";  
-                    seg1 <= "10010010";
+                    seg1 <= char_S;
                   WHEN "1111" => -- 16
                     seg2 <= "11111001";  
                     seg1 <= "10000010";                                
@@ -139,7 +147,7 @@ BEGIN
             WHEN "011" => -- Play
                 seg8 <= "10001100"; -- P
                 seg7 <= "11000111"; -- L
-                seg6 <= "10001000"; -- A
+                seg6 <= char_A; -- A
                 seg5 <= "10010001"; -- Y
                 seg4 <= "10111111"; -- -                
                 seg3 <= "10001001"; -- H               
@@ -155,7 +163,7 @@ BEGIN
                   WHEN "0100" => -- 4 
                     seg1 <= "10011001";
                   WHEN "0101" => -- 5 
-                    seg1 <= "10010010";
+                    seg1 <= char_S;
                   WHEN "0110" => -- 6 
                     seg1 <= "10000010";
                   WHEN "0111" => -- 7                     
@@ -184,7 +192,7 @@ BEGIN
                     seg6 <= "10011001";
                   WHEN "0100" => -- 5
                     seg7 <= "11000000"; 
-                    seg6 <= "10010010";
+                    seg6 <= char_S;
                   WHEN "0101" => -- 6
                     seg7 <= "11000000"; 
                     seg6 <= "10000010";
@@ -214,7 +222,7 @@ BEGIN
                     seg6 <= "10011001";
                   WHEN "1110" => -- 15
                     seg7 <= "11111001";  
-                    seg6 <= "10010010";
+                    seg6 <= char_S;
                   WHEN "1111" => -- 16
                     seg7 <= "11111001";  
                     seg6 <= "10000010";                                
@@ -226,7 +234,7 @@ BEGIN
                 
                 seg5 <= "10001001"; -- H
                 seg4 <= "11111001"; -- I                
-                seg3 <= "10000111"; -- t                  
+                seg3 <= char_t; -- t                  
                 
                 CASE input(6 DOWNTO 4) IS
                   WHEN "000" => -- 0 
@@ -240,7 +248,7 @@ BEGIN
                   WHEN "100" => -- 4 
                     seg2 <= "10011001";
                   WHEN "101" => -- 5 
-                    seg2 <= "10010010";
+                    seg2 <= char_S;
                   WHEN "110" => -- 6 
                     seg2 <= "10000010";                                            
                   WHEN OTHERS => 
@@ -259,7 +267,7 @@ BEGIN
                   WHEN "0100" => -- 4 
                     seg1 <= "10011001";
                   WHEN "0101" => -- 5 
-                    seg1 <= "10010010";
+                    seg1 <= char_S;
                   WHEN "0110" => -- 6 
                     seg1 <= "10000010";    
                   WHEN "0111"  => -- 7  
@@ -275,33 +283,33 @@ BEGIN
            WHEN "100" => -- Finished            
 
                 seg8 <= "10100001"; -- D
-                seg7 <= "10000110"; -- E
-                seg6 <= "10001000"; -- A                
+                seg7 <= char_E; -- E
+                seg6 <= char_A; -- A                
                 seg5 <= "10100001"; -- D
-                seg4 <= "01111111"; -- .
-                seg3 <= "11111111";
-                seg2 <= "11111111";
-                seg1 <= "11111111";                                           
+                seg4 <= char_dot; -- .
+                seg3 <= char_off;
+                seg2 <= char_off;
+                seg1 <= char_off;                                           
                                         
             WHEN "111" => -- Reset.
-                seg8 <= "11001100"; -- r
-                seg7 <= "10000110"; -- E
-                seg6 <= "10010010"; -- S
-                seg5 <= "10000110"; -- E
-                seg4 <= "10000111"; -- t
-                seg3 <= "01111111"; -- .
-                seg2 <= "11111111";
-                seg1 <= "11111111";      
+                seg8 <= char_r; -- r
+                seg7 <= char_E; -- E
+                seg6 <= char_S; -- S
+                seg5 <= char_E; -- E
+                seg4 <= char_t; -- t
+                seg3 <= char_dot; -- .
+                seg2 <= char_off;
+                seg1 <= char_off;      
                           
 			WHEN OTHERS => -- error
 				seg8 <= "10000110"; -- E
-                seg7 <= "11001100"; -- r
-                seg6 <= "11001100"; -- r
+                seg7 <= char_r; -- r
+                seg6 <= char_r; -- r
                 seg5 <= "11000000"; -- O
-                seg4 <= "11001100"; -- r
-                seg3 <= "01111111"; -- .
-                seg2 <= "11111111";
-                seg1 <= "11111111";	
+                seg4 <= char_r; -- r
+                seg3 <= char_dot; -- .
+                seg2 <= char_off;
+                seg1 <= char_off;	
 		END CASE;	
 	END PROCESS code_process;
     
@@ -331,10 +339,10 @@ BEGIN
 			    AN <= "10111111";
 				SEG <= seg7;
 			WHEN "111" => -- 8th 7seg is being written to
-			    AN <= "01111111";
+			    AN <= char_dot;
 				SEG <= seg8;
 			WHEN OTHERS =>
-				AN <= "11111111";
+				AN <= char_off;
 				SEG <= "10000110"; -- Error	
 		END CASE;	
 	END PROCESS display_process;
