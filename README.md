@@ -12,7 +12,7 @@ Vivado version 2020.2 is advised for synthesis and implementation as some of the
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/rafaelromon/DAT096-NN1.git
+   git clone https://github.com/hulthe/eda234-project/
    ```
 2. Open Vivado and move into project directory
    ```sh
