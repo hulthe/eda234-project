@@ -1,3 +1,11 @@
+-----------------------------------------------------
+-- Title: timer.vhdl
+-- Author: Rafael Romon
+-----------------------------------------------------
+-- Description:
+-- Timer entity used to timeout player for 30 or 60s
+-----------------------------------------------------
+
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.NUMERIC_STD.ALL;

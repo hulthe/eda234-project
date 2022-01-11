@@ -1,3 +1,14 @@
+-----------------------------------------------------
+-- Title: demodulator.vhdl
+-- Author: Rafael Romon
+-----------------------------------------------------
+-- Description:
+-- IR demodulator for Bi Phase Coding
+--
+-- TODO:
+-- * Actually recover information
+-----------------------------------------------------
+
 library ieee;
 use ieee.STD_LOGIC_1164.ALL;
 
@@ -24,7 +35,8 @@ architecture Behavioral of demodulator is
     signal samples : STD_LOGIC_VECTOR(1 DOWNTO 0) := "11";
     signal samples_ready : STD_LOGIC := '0';
 begin
-
+    
+    -- captures two samples per transmitted bit
     sampling_process:
 	PROCESS (clk)
 		VARIABLE clk_cycles : INTEGER := 0;
@@ -65,7 +77,7 @@ begin
 		          IF start = '1' THEN
 		              StateMachine <= Sync;
 		          END IF;
-		      when Sync =>
+		      when Sync => -- detects a falling edge that marks the beginning of a transmission
 		          
 		          IF samples_ready = '1' and samples = "10" THEN
 		              StateMachine <= Recover;

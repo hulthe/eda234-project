@@ -36,7 +36,8 @@ ARCHITECTURE Behavioral OF modulator IS
 	SIGNAL bps_signal    : STD_LOGIC := '0';
 
 BEGIN
-
+    
+    -- generates base carrier signal
 	carrier_process :
 	PROCESS (clk)
 		VARIABLE clk_cycles : INTEGER := 0;
@@ -51,7 +52,8 @@ BEGIN
 			END IF;
 		END IF;
 	END PROCESS carrier_process;
-
+    
+    -- creates a binary toggling signal to enforce bps speed
 	bps_process :
 	PROCESS (clk)
 		VARIABLE clk_cycles : INTEGER := 0;
@@ -94,12 +96,12 @@ BEGIN
 						state_machine <= Sync;
 					END IF;
 
-				WHEN Sync =>
+				WHEN Sync => -- waits for bps_signal to be low, done to ensure first bit is the same length
 					IF bps_signal = '0' THEN
 						state_machine <= Set;
 					END IF;
 
-				WHEN Set =>
+				WHEN Set => -- prepares signal fall rising or falling edge
 
 					IF data(data_index) = '0' THEN
 						tx <= tx_signal;
@@ -111,7 +113,7 @@ BEGIN
 						state_machine <= Edge;
 					END IF;
 
-				WHEN Edge =>
+				WHEN Edge => -- sets the rising of falling edge
 
 					IF data(data_index) = '1' THEN
 						tx <= tx_signal;
