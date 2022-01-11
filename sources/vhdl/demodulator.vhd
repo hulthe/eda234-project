@@ -51,7 +51,7 @@ begin
 	END PROCESS sampling_process;
     
     demodulator_process:
-	PROCESS (clk)
+	PROCESS (clk, samples_ready)
 		VARIABLE sample_index : INTEGER := 0;
 	BEGIN
 	    IF reset_n = '0' THEN
