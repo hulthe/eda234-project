@@ -30,11 +30,12 @@ ENTITY top_level IS
 		PLAYER_NUM   : IN  STD_LOGIC_VECTOR(3 DOWNTO 0);
 		UART_RXD_OUT : OUT STD_LOGIC;
 		LASER_TX     : OUT STD_LOGIC;
-		SPEAKER      : OUT STD_LOGIC;
 		LED16        : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
 		LED17        : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
 		SEG          : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		AN           : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+		AN           : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+		audio_out_gun : out std_logic;
+        audio_out_vest: out std_logic
 	);
 END top_level;
 
@@ -172,15 +173,34 @@ ARCHITECTURE Behavioral OF top_level IS
 
 	SIGNAL audio_trigger_signal : STD_LOGIC_VECTOR(2 DOWNTO 0) := "000";
 
-	COMPONENT audio_controller IS
-		PORT (
-			clk       : IN  STD_LOGIC;
-			reset_n   : IN  STD_LOGIC;
-			audio_out : OUT STD_LOGIC;
-			trigger   : IN  STD_LOGIC_VECTOR (2 DOWNTO 0)
-		);
-
-	END COMPONENT audio_controller;
+	--hit detector and audio controller with 2 speakers
+	signal half_detector_sig : STD_LOGIC;
+    signal full_detector_sig : STD_LOGIC;
+    signal gun_detector_sig  : STD_LOGIC;
+    signal audio_out_gun_sig : STD_LOGIC;
+    signal audio_out_vest_sig : STD_LOGIC;
+	SIGNAL sound_control_sig : std_logic_vector(2 downto 0);
+	
+    component hit_detector is
+        Port ( clk_100M      : in STD_LOGIC;
+               reset_n       : in STD_LOGIC;
+               half_detector : in STD_LOGIC;
+               full_detector : in STD_LOGIC;
+               gun_detector  : in STD_LOGIC;
+               half_shot     : out STD_LOGIC;
+               full_shot     : out STD_LOGIC;
+               gun_hit       : out STD_LOGIC);
+    end component hit_detector;
+    
+    component audio_controller is
+        Port (
+            clk       : in std_logic;
+            reset_n   : in std_logic;
+            audio_out_gun : out std_logic;
+            audio_out_vest : out std_logic;
+            trigger   : in std_logic_vector (2 downto 0)
+        );
+    end component audio_controller;
     
     ----
     -- END Component Inst.
@@ -192,15 +212,51 @@ BEGIN
     -- Component Mapping
     ----
     
-	audio_comp : audio_controller
-	PORT MAP
-	(
-		clk       => CLK100MHZ,
-		reset_n   => reset_signal,
-		audio_out => SPEAKER,
-		trigger   => audio_trigger_signal
-	);
-
+	hit_detector_comp:
+    component hit_detector
+        port map(
+            clk_100M     => CLK100MHZ, 
+            reset_n      => reset_signal,
+            half_detector=> half_detector_sig,
+            full_detector=> full_detector_sig,
+            gun_detector => gun_detector_sig,
+            half_shot    => sound_control_sig(1),
+            full_shot    => sound_control_sig(2),
+            gun_hit      => sound_control_sig(0)                     
+        );
+    
+    audio_controller_comp:
+    component audio_controller
+    port map(
+        clk             => CLK100MHZ ,
+        reset_n         => reset_signal,
+        audio_out_gun   => audio_out_gun_sig,
+        audio_out_vest  => audio_out_vest_sig,
+        trigger         => sound_control_sig
+    );
+    
+    process(CLK100MHZ, reset_signal)
+    begin
+        if (reset_signal = '0') then
+            half_detector_sig <= '1';
+            full_detector_sig <= '1';
+            gun_detector_sig  <= '0';
+            audio_out_gun     <= '0';
+            audio_out_vest    <= '0';
+        elsif rising_edge(CLK100MHZ) then
+            half_detector_sig <= BTNC;
+            full_detector_sig <= FULL_HIT;
+            audio_out_gun     <= audio_out_gun_sig;
+            audio_out_vest    <= audio_out_vest_sig;
+            if StateMachine /= Timeout then
+                 gun_detector_sig  <= trigger_signal;
+            else
+                 gun_detector_sig  <= '0';
+            end if;
+        end if;
+    end process;
+    
+    
 	timer_comp : timer
 	GENERIC MAP(
 		CLK_FREQ => CLK_FREQ -- clk freq in Hz			
