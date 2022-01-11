@@ -1,3 +1,11 @@
+-----------------------------------------------------
+-- Title: seg_controller.vhdl
+-- Author: Rafael Romon
+-----------------------------------------------------
+-- Description:
+-- 7 segment controller, simplifies displaying menus
+-- and values on the inboard 7 segment displays
+-----------------------------------------------------
 
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;

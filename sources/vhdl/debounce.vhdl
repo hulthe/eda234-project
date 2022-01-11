@@ -1,3 +1,11 @@
+-----------------------------------------------------
+-- Title: debounce.vhdl
+-- Author: Rafael Romon
+-----------------------------------------------------
+-- Description:
+-- Button input debouncer
+-----------------------------------------------------
+
 LIBRARY ieee;
 USE ieee.std_logic_1164.all;
 

@@ -1,3 +1,12 @@
+-----------------------------------------------------
+-- Title: top_level.vhdl
+-- Author: Rafael Romon
+-----------------------------------------------------
+-- Description:
+-- Top level controller for the Laserdoom vest system
+-----------------------------------------------------
+
+
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 USE ieee.numeric_std.ALL;
@@ -7,7 +16,7 @@ ENTITY top_level IS
 		CLK_FREQ     : INTEGER := 100000000; -- clk freq in Hz
 		CARRIER_FREQ : INTEGER := 36000; -- laser carrier freq in Hz
 		BPS          : INTEGER := 50; -- laser bits per second
-		DATA_LEN     : INTEGER := 6
+		DATA_LEN     : INTEGER := 6 -- UART data transmission length
 	);
 	PORT (
 		CLK100MHZ    : IN  STD_LOGIC;
@@ -33,7 +42,15 @@ ARCHITECTURE Behavioral OF top_level IS
 
 	TYPE states IS (Start, PlayerSelect, Play, Timeout, Dead,
 		Finished);
-	SIGNAL StateMachine : states := Start;
+	SIGNAL StateMachine : states := Start;	
+	
+	SIGNAL full_hits : UNSIGNED(7 DOWNTO 0) := (OTHERS => '0');
+	SIGNAL half_hits : UNSIGNED(7 DOWNTO 0) := (OTHERS => '0');
+	signal player_num_signal: STD_LOGIC_VECTOR(3 DOWNTO 0) := (OTHERS => '0'); 
+
+    ----
+    -- Comp Inst.
+    ----
 
 	SIGNAL reset_signal : STD_LOGIC;
 	SIGNAL send_signal : STD_LOGIC;
@@ -164,12 +181,17 @@ ARCHITECTURE Behavioral OF top_level IS
 		);
 
 	END COMPONENT audio_controller;
-
-	SIGNAL full_hits : UNSIGNED(7 DOWNTO 0) := (OTHERS => '0');
-	SIGNAL half_hits : UNSIGNED(7 DOWNTO 0) := (OTHERS => '0');
+    
+    ----
+    -- END Component Inst.
+    ----	
 
 BEGIN
-
+    
+    ----
+    -- Component Mapping
+    ----
+    
 	audio_comp : audio_controller
 	PORT MAP
 	(
@@ -280,6 +302,10 @@ BEGIN
         output  => demod_out_signal,
         input   => FULL_HIT
     );
+    
+    ----
+    -- END Component Mapping
+    ----
 
     top_level_process : PROCESS (CLK100MHZ)
         VARIABLE start_flag : STD_LOGIC := '0';
@@ -297,6 +323,7 @@ BEGIN
         ELSIF rising_edge(CLK100MHZ) THEN
             CASE StateMachine IS
                 WHEN Start =>
+                    
                     seg_code_signal <= "001";
                     lives := "1000";
                     
@@ -306,9 +333,13 @@ BEGIN
                         start_flag := '0';
                         StateMachine <= PlayerSelect;
                     END IF;
-                WHEN PlayerSelect =>
+                
+                WHEN PlayerSelect => -- lets the operator set the player number                                                            
+                    
                     seg_code_signal <= "010";
                     seg_input_signal <= "0000000" & PLAYER_NUM;
+                    
+                    player_num_signal <= PLAYER_NUM;
 
                     IF NOT(trigger_signal) = '1' THEN
                         start_flag := '1';
@@ -319,8 +350,9 @@ BEGIN
                         demod_start_signal <= '1';
                     END IF;
                 
-                WHEN Play =>
-                    modulator_start <= NOT(trigger_signal);
+                WHEN Play => -- round functionality 
+                
+                    modulator_start <= NOT(trigger_signal); -- 
                 
                     IF trigger_signal = '0' THEN
                         audio_trigger_signal <= "001";
@@ -329,24 +361,24 @@ BEGIN
                     END IF;
                 
                     seg_code_signal <= "011";
-                    seg_input_signal <= "0000000" & STD_LOGIC_VECTOR(lives);
+                    seg_input_signal <= "0000000" & STD_LOGIC_VECTOR(lives); -- display the current number of lives in the 7seg 
                 
-                    IF start_flag = '1' THEN -- This avoids substracting 2                                                        
+                    IF start_flag = '1' THEN -- This avoids substracting 2 lives when getting shot                                                      
                         start_flag := '0';
-                        audio_trigger_signal <= "000";
-                        demod_start_signal <= '0';
+                        audio_trigger_signal <= "000"; -- disables sound
+                        demod_start_signal <= '0'; -- disables the demodulator for timeout
                         StateMachine <= Timeout;
                     ELSE
                 
                         IF demod_ready_signal = '1' THEN
-                            audio_trigger_signal <= "100";
+                            audio_trigger_signal <= "100"; -- play fullhit sound
                             full_hits <= full_hits + 1;
                             
-                            IF lives <= "0010" THEN
+                            IF lives <= "0010" THEN  -- if player dies
                                 demod_start_signal <= '0';
                                 start_flag := '0';
                                 StateMachine <= Dead;
-                            ELSE
+                            ELSE  -- reduces lives annd prepares timer for timoeut
                                 timer_start_signal <= '1';
                                 timer_length_signal <= "10";
                                 lives := lives - 2;                                
@@ -354,14 +386,14 @@ BEGIN
                             END IF;
                 
                         ELSIF BTNC = '1' THEN                
-                            audio_trigger_signal <= "010";
+                            audio_trigger_signal <= "010";  -- play halfhit sound
                             half_hits <= half_hits + 1;
                                             
-                            IF lives = "0001" THEN
+                            IF lives = "0001" THEN -- if player dies
                                 demod_start_signal <= '0';
                                 start_flag := '0';
                                 StateMachine <= Dead;
-                            ELSE
+                            ELSE -- reduces lives annd prepares timer for timoeut
                                 timer_start_signal <= '1';
                                 timer_length_signal <= "01";
                                 lives := lives - 1;                                
@@ -370,7 +402,8 @@ BEGIN
                         END IF;
                 
                     END IF;
-                WHEN Timeout =>
+                    
+                WHEN Timeout => -- Times out the user making him unable to shoot
                 
                     seg_code_signal <= "101";
                     seg_input_signal <= demod_out_signal(DATA_LEN - 2 DOWNTO 1) & timer_tenth_signal & timer_unit_signal;
@@ -385,7 +418,8 @@ BEGIN
                     IF NOT(trigger_signal) = '0' THEN
                         StateMachine <= Finished;
                     END IF;
-                WHEN Finished =>
+                WHEN Finished => -- Player is dead, waits to start a new round
+                
                     seg_code_signal <= "100";
                     
                     IF NOT(trigger_signal) = '1' THEN
@@ -412,14 +446,15 @@ BEGIN
 
             ELSIF rising_edge(CLK100MHZ) THEN
                 CASE UartStateMachine IS
-                    WHEN Idle =>
+                    WHEN Idle => -- wait for user input
                                                             
                         IF NOT(send_signal) = '1' THEN
-                            uart_msg <= "0000" & PLAYER_NUM;
+                            uart_msg <= "0000" & player_num_signal;
                             UartStateMachine <= Player;
                             uart_start <= '1';
                         END IF;
-                    WHEN Player =>
+                        
+                    WHEN Player => -- send player number
                         IF uart_busy = '1' THEN
                             uart_start <= '0';
                         ELSIF uart_done = '1' THEN
@@ -427,7 +462,7 @@ BEGIN
                             UartStateMachine <= Full;
                             uart_start <= '1';
                         END IF;
-                    WHEN Full => 
+                    WHEN Full => -- send number of full hits 
                         IF uart_busy = '1' THEN
                             uart_start <= '0';
                         ELSIF uart_done = '1' THEN
@@ -435,7 +470,7 @@ BEGIN
                             UartStateMachine <= Half;
                             uart_start <= '1';
                         END IF;
-                    WHEN Half => 
+                    WHEN Half => -- send number of half hits
                         IF uart_busy = '1' THEN
                             uart_start <= '0';
                         ELSIF uart_done = '1' THEN
@@ -449,14 +484,15 @@ BEGIN
                 END CASE;        
             END IF;
         END PROCESS uart_process;
-
+        
+        -- communication debug process displays transmissions as blinking lights
         debug_process : PROCESS (HALF_HIT, uart_out, modulator_out)
         BEGIN
             UART_RXD_OUT <= uart_out;
             LASER_TX <= modulator_out;
             LED16 <= NOT(FULL_HIT) & NOT(uart_out) & modulator_out;
         END PROCESS debug_process;
-        
+               
         led_status_process : PROCESS (reset_signal, uart_busy, modulator_busy)
         BEGIN
             IF reset_signal = '0' THEN

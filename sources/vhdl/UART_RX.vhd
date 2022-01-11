@@ -5,6 +5,7 @@
 -- Description:
 -- UART Transmitter. 8 bits w/ 1 start and 1 end bit
 -- no parity.
+--
 -- TODO:
 -- * implement CTS/RTS flow control
 -----------------------------------------------------
