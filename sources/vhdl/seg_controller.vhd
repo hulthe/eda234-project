@@ -31,16 +31,37 @@ ARCHITECTURE Behavioral OF seg_controller IS
 	SIGNAL display_selector : UNSIGNED(2 DOWNTO 0) := "000";
 	SIGNAL clk_cycles : INTEGER := 0;	
     
-    SIGNAL char_A : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10001000";
+    SIGNAL char_A : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10001000";    
+    SIGNAL char_D : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10100001";
     SIGNAL char_E : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10000110";
+    SIGNAL char_H : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10001001";
+    SIGNAL char_I : STD_LOGIC_VECTOR (7 DOWNTO 0) := "11111001";    
+    SIGNAL char_L : STD_LOGIC_VECTOR (7 DOWNTO 0) := "11000111";
+    SIGNAL char_P : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10001100";
     SIGNAL char_r : STD_LOGIC_VECTOR (7 DOWNTO 0) := "11001100";
     SIGNAL char_S : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10010010";
     SIGNAL char_t : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10000111";
-    SIGNAL char_dot : STD_LOGIC_VECTOR (7 DOWNTO 0) := "01111111";        
+    SIGNAL char_Y : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10010001";
+    
+    SIGNAL num_0 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "11000000";
+    SIGNAL num_1 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "11111001";
+    SIGNAL num_2 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10100100";
+    SIGNAL num_3 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10110000";
+    SIGNAL num_4 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10011001";
+    SIGNAL num_5 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10010010";
+    SIGNAL num_6 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10000010";
+    SIGNAL num_7 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "11111000";
+    SIGNAL num_8 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10000000";
+    SIGNAL num_9 : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10010000";
+    
+    
+    SIGNAL char_dot : STD_LOGIC_VECTOR (7 DOWNTO 0) := "01111111";
+    SIGNAL char_slash : STD_LOGIC_VECTOR (7 DOWNTO 0) := "10111111";        
     SIGNAL char_off : STD_LOGIC_VECTOR (7 DOWNTO 0) := "11111111";        
     
 BEGIN
-
+    
+    -- generates a pulse to switch between displays
 	pulse_process :
 	PROCESS (clk)		
 	BEGIN
@@ -61,6 +82,7 @@ BEGIN
 		END IF;
 	END PROCESS pulse_process;
 	
+	-- sets each 7seg display according to the input code
 	code_process :
 	PROCESS (code)        
 	BEGIN
@@ -86,206 +108,206 @@ BEGIN
                 seg1 <= char_off;
                 
 			WHEN "010" => -- Player.
-                seg8 <= "10001100"; -- P
-                seg7 <= "11000111"; -- L
+                seg8 <= char_P; -- P
+                seg7 <= char_L; -- L
                 seg6 <= char_A; -- A
-                seg5 <= "10010001"; -- Y
+                seg5 <= char_Y; -- Y
                 seg4 <= char_E; -- E
                 seg3 <= char_r; -- r               
                 
                 CASE input(3 DOWNTO 0) IS
                   WHEN "0000" => -- 1 
-                    seg2 <= "11000000";
-                    seg1 <= "11111001";
+                    seg2 <= num_0;
+                    seg1 <= num_1;
                   WHEN "0001" => -- 2
-                    seg2 <= "11000000"; 
-                    seg1 <= "10100100";
+                    seg2 <= num_0; 
+                    seg1 <= num_2;
                   WHEN "0010" => -- 3
-                    seg2 <= "11000000"; 
-                    seg1 <= "10110000";
+                    seg2 <= num_0; 
+                    seg1 <= num_3;
                   WHEN "0011" => -- 4
-                    seg2 <= "11000000"; 
-                    seg1 <= "10011001";
+                    seg2 <= num_0; 
+                    seg1 <= num_4;
                   WHEN "0100" => -- 5
-                    seg2 <= "11000000"; 
-                    seg1 <= char_S;
+                    seg2 <= num_0; 
+                    seg1 <= num_5;
                   WHEN "0101" => -- 6
-                    seg2 <= "11000000"; 
-                    seg1 <= "10000010";
+                    seg2 <= num_0; 
+                    seg1 <= num_6;
                   WHEN "0110" => -- 7 
-                    seg2 <= "11000000"; 
-                    seg1 <= "11111000";
+                    seg2 <= num_0; 
+                    seg1 <= num_7;
                   WHEN "0111" => -- 8
-                    seg2 <= "11000000"; 
-                    seg1 <= "10000000";
+                    seg2 <= num_0; 
+                    seg1 <= num_8;
                   WHEN "1000" => -- 9
-                    seg2 <= "11000000";  
-                    seg1 <= "10010000";
+                    seg2 <= num_0;  
+                    seg1 <= num_9;
                   WHEN "1001" => -- 10
-                    seg2 <= "11111001";  
-                    seg1 <= "11000000";
+                    seg2 <= num_1;  
+                    seg1 <= num_0;
                   WHEN "1010" => -- 11
-                    seg2 <= "11111001";  
-                    seg1 <= "11111001";
+                    seg2 <= num_1;  
+                    seg1 <= num_1;
                   WHEN "1011" => -- 12
-                    seg2 <= "11111001";  
-                    seg1 <= "10100100";
+                    seg2 <= num_1;  
+                    seg1 <= num_2;
                   WHEN "1100" => -- 13
-                    seg2 <= "11111001";  
-                    seg1 <= "10110000";
+                    seg2 <= num_1;  
+                    seg1 <= num_3;
                   WHEN "1101" => -- 14
-                    seg2 <= "11111001";  
-                    seg1 <= "10011001";
+                    seg2 <= num_1;  
+                    seg1 <= num_4;
                   WHEN "1110" => -- 15
-                    seg2 <= "11111001";  
-                    seg1 <= char_S;
+                    seg2 <= num_1;  
+                    seg1 <= num_5;
                   WHEN "1111" => -- 16
-                    seg2 <= "11111001";  
-                    seg1 <= "10000010";                                
-                  WHEN OTHERS => seg1 <= "10000110"; -- Error
+                    seg2 <= num_1;  
+                    seg1 <= num_6;                                
+                  WHEN OTHERS => seg1 <= char_E; -- Error
                 END CASE;
             WHEN "011" => -- Play
-                seg8 <= "10001100"; -- P
-                seg7 <= "11000111"; -- L
+                seg8 <= char_P; -- P
+                seg7 <= char_L; -- L
                 seg6 <= char_A; -- A
-                seg5 <= "10010001"; -- Y
-                seg4 <= "10111111"; -- -                
-                seg3 <= "10001001"; -- H               
-                seg2 <= "10001100"; -- P                
+                seg5 <= char_Y; -- Y
+                seg4 <= char_slash; -- -                
+                seg3 <= char_H; -- H               
+                seg2 <= char_P; -- P                
                 
                 CASE input(3 DOWNTO 0) IS
                   WHEN "0001" => -- 1 
-                    seg1 <= "11111001";
+                    seg1 <= num_1;
                   WHEN "0010" => -- 2 
-                    seg1 <= "10100100";
+                    seg1 <= num_2;
                   WHEN "0011" => -- 3 
-                    seg1 <= "10110000";
+                    seg1 <= num_3;
                   WHEN "0100" => -- 4 
-                    seg1 <= "10011001";
+                    seg1 <= num_4;
                   WHEN "0101" => -- 5 
-                    seg1 <= char_S;
+                    seg1 <= num_5;
                   WHEN "0110" => -- 6 
-                    seg1 <= "10000010";
+                    seg1 <= num_6;
                   WHEN "0111" => -- 7                     
-                    seg1 <= "11111000";
+                    seg1 <= num_7;
                   WHEN "1000" => -- 8                     
-                    seg1 <= "10000000";                                                     
+                    seg1 <= num_8;                                                     
                   WHEN OTHERS => 
-                  seg1 <= "10000110"; -- Error            
+                  seg1 <= char_E; -- Error            
                END CASE;
                
            WHEN "101" => -- Timeout
-                seg8 <= "10001100"; -- P
+                seg8 <= char_P; -- P
                 
                 CASE input(10 DOWNTO 7) IS
                   WHEN "0000" => -- 1 
-                    seg7 <= "11000000";
-                    seg6 <= "11111001";
+                    seg7 <= num_0;
+                    seg6 <= num_1;
                   WHEN "0001" => -- 2
-                    seg7 <= "11000000"; 
-                    seg6 <= "10100100";
+                    seg7 <= num_0; 
+                    seg6 <= num_2;
                   WHEN "0010" => -- 3
-                    seg7 <= "11000000"; 
-                    seg6 <= "10110000";
+                    seg7 <= num_0; 
+                    seg6 <= num_3;
                   WHEN "0011" => -- 4
-                    seg7 <= "11000000"; 
-                    seg6 <= "10011001";
+                    seg7 <= num_0; 
+                    seg6 <= num_4;
                   WHEN "0100" => -- 5
-                    seg7 <= "11000000"; 
-                    seg6 <= char_S;
+                    seg7 <= num_0; 
+                    seg6 <= num_5;
                   WHEN "0101" => -- 6
-                    seg7 <= "11000000"; 
-                    seg6 <= "10000010";
+                    seg7 <= num_0; 
+                    seg6 <= num_6;
                   WHEN "0110" => -- 7 
-                    seg7 <= "11000000"; 
-                    seg6 <= "11111000";
+                    seg7 <= num_0; 
+                    seg6 <= num_7;
                   WHEN "0111" => -- 8
-                    seg7 <= "11000000"; 
-                    seg6 <= "10000000";
+                    seg7 <= num_0; 
+                    seg6 <= num_8;
                   WHEN "1000" => -- 9
-                    seg7 <= "11000000";  
-                    seg6 <= "10010000";
+                    seg7 <= num_0;  
+                    seg6 <= num_9;
                   WHEN "1001" => -- 10
-                    seg7 <= "11111001";  
-                    seg6 <= "11000000";
+                    seg7 <= num_1;  
+                    seg6 <= num_0;
                   WHEN "1010" => -- 11
-                    seg7 <= "11111001";  
-                    seg6 <= "11111001";
+                    seg7 <= num_1;  
+                    seg6 <= num_1;
                   WHEN "1011" => -- 12
-                    seg7 <= "11111001";  
-                    seg6 <= "10100100";
+                    seg7 <= num_1;  
+                    seg6 <= num_2;
                   WHEN "1100" => -- 13
-                    seg7 <= "11111001";  
-                    seg6 <= "10110000";
+                    seg7 <= num_1;  
+                    seg6 <= num_3;
                   WHEN "1101" => -- 14
-                    seg7 <= "11111001";  
-                    seg6 <= "10011001";
+                    seg7 <= num_1;  
+                    seg6 <= num_4;
                   WHEN "1110" => -- 15
-                    seg7 <= "11111001";  
-                    seg6 <= char_S;
+                    seg7 <= num_1;  
+                    seg6 <= num_5;
                   WHEN "1111" => -- 16
-                    seg7 <= "11111001";  
-                    seg6 <= "10000010";                                
+                    seg7 <= num_1;  
+                    seg6 <= num_6;                                
                   WHEN OTHERS =>
-                    seg7 <= "10000110"; 
-                    seg6 <= "10000110"; -- Error
+                    seg7 <= char_E; 
+                    seg6 <= char_E; -- Error
                 END CASE;
                 
                 
-                seg5 <= "10001001"; -- H
-                seg4 <= "11111001"; -- I                
+                seg5 <= char_H; -- H
+                seg4 <= char_I; -- I                
                 seg3 <= char_t; -- t                  
                 
                 CASE input(6 DOWNTO 4) IS
                   WHEN "000" => -- 0 
-                    seg2 <= "11000000";  
+                    seg2 <= num_0;  
                   WHEN "001" => -- 1 
-                    seg2 <= "11111001";
+                    seg2 <= num_1;
                   WHEN "010" => -- 2 
-                    seg2 <= "10100100";
+                    seg2 <= num_2;
                   WHEN "011" => -- 3 
-                    seg2 <= "10110000";
+                    seg2 <= num_3;
                   WHEN "100" => -- 4 
-                    seg2 <= "10011001";
+                    seg2 <= num_4;
                   WHEN "101" => -- 5 
                     seg2 <= char_S;
                   WHEN "110" => -- 6 
-                    seg2 <= "10000010";                                            
+                    seg2 <= num_6;                                            
                   WHEN OTHERS => 
-                    seg2 <= "10000110"; -- Error            
+                    seg2 <= char_E; -- Error            
                END CASE;    
                
                CASE input(3 DOWNTO 0) IS               
                   WHEN "0000" => -- 0 
-                    seg1 <= "11000000";  
+                    seg1 <= num_0;  
                   WHEN "0001" => -- 1 
-                    seg1 <= "11111001";
+                    seg1 <= num_1;
                   WHEN "0010" => -- 2 
-                    seg1 <= "10100100";
+                    seg1 <= num_2;
                   WHEN "0011" => -- 3 
-                    seg1 <= "10110000";
+                    seg1 <= num_3;
                   WHEN "0100" => -- 4 
-                    seg1 <= "10011001";
+                    seg1 <= num_4;
                   WHEN "0101" => -- 5 
                     seg1 <= char_S;
                   WHEN "0110" => -- 6 
-                    seg1 <= "10000010";    
+                    seg1 <= num_6;    
                   WHEN "0111"  => -- 7  
-                    seg1 <= "11111000";
+                    seg1 <= num_7;
                   WHEN "1000" => -- 8 
-                    seg1 <= "10000000";
+                    seg1 <= num_8;
                   WHEN "1001" => -- 9  
-                    seg1 <= "10010000";                                                 
+                    seg1 <= num_9;                                                 
                   WHEN OTHERS => 
-                   seg1 <= "10000110"; -- Error            
+                   seg1 <= char_E; -- Error            
                END CASE;   
            
            WHEN "100" => -- Finished            
 
-                seg8 <= "10100001"; -- D
+                seg8 <= char_D; -- D
                 seg7 <= char_E; -- E
                 seg6 <= char_A; -- A                
-                seg5 <= "10100001"; -- D
+                seg5 <= char_D; -- D
                 seg4 <= char_dot; -- .
                 seg3 <= char_off;
                 seg2 <= char_off;
@@ -302,10 +324,10 @@ BEGIN
                 seg1 <= char_off;      
                           
 			WHEN OTHERS => -- error
-				seg8 <= "10000110"; -- E
+				seg8 <= char_E; -- E
                 seg7 <= char_r; -- r
                 seg6 <= char_r; -- r
-                seg5 <= "11000000"; -- O
+                seg5 <= num_0; -- O
                 seg4 <= char_r; -- r
                 seg3 <= char_dot; -- .
                 seg2 <= char_off;
@@ -313,6 +335,7 @@ BEGIN
 		END CASE;	
 	END PROCESS code_process;
     
+    -- switches between the output 7 seg displays 
 	display_process :
 	PROCESS (clk, display_selector)
 	BEGIN
@@ -342,8 +365,8 @@ BEGIN
 			    AN <= char_dot;
 				SEG <= seg8;
 			WHEN OTHERS =>
-				AN <= char_off;
-				SEG <= "10000110"; -- Error	
+				AN <= "00000000";
+				SEG <= char_E; -- Error	
 		END CASE;	
 	END PROCESS display_process;
 

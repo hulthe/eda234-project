@@ -34,6 +34,8 @@ BEGIN
 			unit_var       := "1001";
 			tenth_var      := "000";
 			clk_cycles := 0;
+			StateMachine <= Idle;
+			
 
 		ELSIF rising_edge(clk) THEN
             
